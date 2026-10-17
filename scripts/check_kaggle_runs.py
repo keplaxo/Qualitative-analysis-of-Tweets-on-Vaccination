@@ -19,6 +19,21 @@ def one(label,cfg):
     state=found[-1] if found else (
         "complete" if re.search(r"\bcomplete\b",state,re.I) else "unknown")
     record={"run":label,"state":state,"notebook":"https://www.kaggle.com/code/"+cfg["ref"]}
+    if state.casefold() in ("error","failed"):
+        # Never emit raw kernel stderr: it could contain private tweet content.
+        logs=command("kernels","logs",cfg["ref"],timeout=75)
+        if logs.returncode == 0:
+            raw=logs.stdout.lower()
+            if "duplicate prediction key" in raw:
+                record["failure_category"]="duplicate_processing_keys"
+            elif "master.csv not mounted" in raw:
+                record["failure_category"]="dataset_mount_path"
+            elif "no module named" in raw or "modulenotfounderror" in raw:
+                record["failure_category"]="python_package_missing"
+            elif "out of memory" in raw or "cuda error" in raw:
+                record["failure_category"]="gpu_memory_or_cuda"
+            else:
+                record["failure_category"]="unknown_review_private_kaggle_logs"
     if state.casefold() in ("complete","completed","success","succeeded"):
         with tempfile.TemporaryDirectory() as td:
             dest=pathlib.Path(td)
