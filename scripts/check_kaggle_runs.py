@@ -1,5 +1,6 @@
 """Check private Kaggle run status, retrieving only non-text research summaries."""
 import json, os, pathlib, re, subprocess, sys, tempfile, time
+from datetime import datetime, timezone
 
 TASKS={
   "schema_probe":{"ref":"keplaxo/vax-schema-probe-20261017","report":"schema_probe.json"},
@@ -57,6 +58,7 @@ def main():
         raise RuntimeError("Kaggle credentials missing")
     # Re-check all private runs after the verified schema-preflight completion.
     records=[one(label,cfg) for label,cfg in TASKS.items()]
+    print("Checked_utc:",datetime.now(timezone.utc).isoformat())
     print(json.dumps(records,indent=2))
     summary=os.environ.get("GITHUB_STEP_SUMMARY")
     if summary:
