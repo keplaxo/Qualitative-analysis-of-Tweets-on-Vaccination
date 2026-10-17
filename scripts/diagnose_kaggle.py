@@ -1,7 +1,8 @@
 """Diagnose Kaggle notebook errors without dumping tweet rows into public CI logs."""
 import os,re,subprocess,sys,csv,io,json,tempfile,pathlib
 REFS=("keplaxo/vax-schema-probe-20261017",
-      "keplaxo/vax-sentiment-benchmark-smoke")
+      "keplaxo/vax-sentiment-benchmark-smoke",
+      "keplaxo/vax-sentiment-benchmark-full")
 PAT=re.compile(r"Traceback|Exception|Error|No module named|No such file|not found|"
                r"ModuleNotFound|ImportError|OSError|RuntimeError|ValueError|"
                r"FileNotFound|SyntaxError|KeyError|AssertionError|"
@@ -29,6 +30,22 @@ def main():
         if p.returncode:
             print("LOGS: unavailable (exit "+str(p.returncode)+")")
             print("DIAGNOSTIC: "+(p.stderr or p.stdout).strip()[:280])
+            continue
+        if ref.endswith("-full"):
+            try:
+                events=json.loads(p.stdout)
+                raw="\n".join(str(e.get("data","")) for e in events if isinstance(e,dict))
+                marks=("GPU runtime:","Dataset mounted:","Repository revision:",
+                       "Downstream models will use the language-screened copy",
+                       "Running:","xlmt_sentiment.jsonl","roberta_english_sentiment.jsonl",
+                       "deberta_stance.jsonl","summary.json","Traceback","Error",
+                       "out of memory","quota","cancel","interrupt")
+                print("FULL_NOTEBOOK_LOG_EVENTS:",len(events))
+                print("FULL_NOTEBOOK_MILESTONES:",[v for v in marks if v.lower() in raw.lower()])
+                print("FULL_NOTEBOOK_LAST_EVENT_TIME_SECONDS:",max([float(e.get("time",0)) for e in events if isinstance(e,dict)] or [0]))
+                print("FULL_NOTEBOOK_STREAMS:",{n:sum(e.get("stream_name")==n for e in events if isinstance(e,dict)) for n in ("stdout","stderr")})
+            except (ValueError,TypeError):
+                print("FULL_NOTEBOOK_LOGS_UNPARSEABLE")
             continue
         lines=[v for v in p.stdout.splitlines() if PAT.search(v)]
         print("DIAGNOSTIC_LINES: "+str(len(lines)))
