@@ -208,6 +208,14 @@ def run_zeroshot(args):
     dest = Path(args.output)
     seen = existing_keys(dest)
     work = [r for r in all_records if r["record_key"] not in seen]
+    # This DeBERTa model is English-oriented; do not score French/other tweets
+    # as if it were a validated multilingual stance classifier.
+    work = [r for r in work if str(r.get("language_screen", "")).lower()
+            in ("en", "eng", "english")]
+    if not work and not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.touch()
+        print("No English-screened records eligible for NLI stance stage")
     metadata = {"model": ZERO_SHOT_MODEL,
                 "revision": pipe.model.config._commit_hash,
                 "task": "exploratory_generic_vaccine_stance_not_target_specific",
