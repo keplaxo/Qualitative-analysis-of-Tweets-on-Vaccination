@@ -9,6 +9,8 @@ on:
       - feature/kaggle-model-benchmark-v1
     paths:
       - ".github/workflows/kaggle-status.yml"
+      - "kaggle/launch-smoke.trigger"
+      - "scripts/check_kaggle_runs.py"
 
 permissions:
   contents: read
