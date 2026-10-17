@@ -19,6 +19,30 @@ def main():
             (os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY"))):
         raise RuntimeError("Kaggle API authentication not configured")
     cfg=MODES[mode]
+    if mode=="full":
+        # Require the prior Kaggle smoke run to have completed and saved
+        # all three outputs. Submission is not evidence of completion.
+        prior=MODES["smoke"]["kernel"]
+        check=subprocess.run(["kaggle","kernels","status",prior],
+                             capture_output=True,text=True,timeout=60)
+        if check.returncode or "KernelWorkerStatus.COMPLETE" not in check.stdout:
+            raise RuntimeError("2,000-record stage blocked: smoke notebook not complete")
+        with tempfile.TemporaryDirectory() as td:
+            output=subprocess.run(
+                ["kaggle","kernels","output",prior,"-p",td,
+                 "--file-pattern","summary.json"],
+                capture_output=True,text=True,timeout=120)
+            summaries=list(pathlib.Path(td).rglob("summary.json"))
+            if output.returncode or not summaries:
+                raise RuntimeError("2,000-record stage blocked: smoke summary missing")
+            prior_result=json.loads(summaries[0].read_text())
+            coverage=prior_result.get("stage_coverage",{})
+            if (prior_result.get("n_sampled")!=100 or
+                coverage.get("multilingual_sentiment")!=100 or
+                coverage.get("english_sentiment",0)<1 or
+                coverage.get("zero_shot_stance",0)<1):
+                raise RuntimeError("2,000-record stage blocked: incomplete model coverage")
+        print("Validated 100-record smoke checkpoint; approved 2,000-record stage.")
     src=pathlib.Path("kaggle/vaccination_benchmark.ipynb")
     doc=json.loads(src.read_text(encoding="utf-8"))
     config_idx=next((i for i,c in enumerate(doc["cells"])
