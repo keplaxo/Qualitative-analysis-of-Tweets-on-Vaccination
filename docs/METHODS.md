@@ -33,8 +33,8 @@ C. **Exploratory generic vaccine stance**: DeBERTa-v3 zero-shot NLI with explici
    abstention; they are not calibrated probabilities or accuracy.
 D. **Semantic adjudication**: Qwen3-4B-Instruct-2507 for up to 300
    early-stage cases, favoring cross-model disagreement, ambiguities and a
-   random agreement audit in the later experiment. The first notebook defaults to
-   a stable hash-ranked subset pending a prespecified triage file. Record-level
+   random agreement audit in the later experiment. The notebook uses a frozen 60% low-margin/abstention enrichment plus
+   40% hash-ranked routine cases, with calendar-year coverage. Record-level
    evidence must be exact substring; outputs failing schema checks are marked
    needs_reassessment, never coerced to a valid label.
 
