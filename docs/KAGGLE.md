@@ -43,3 +43,24 @@ Automated GPU notebook submission should use Kaggle
 `kernel-metadata.json` with `dataset_sources` containing that exact dataset
 reference, `is_private` true and `enable_gpu` true; avoid publishing notebook
 outputs or raw tweet rows as GitHub Actions artifacts.
+
+## GitHub-controlled GPU submission
+
+The [benchmark submission workflow](../.github/workflows/kaggle-benchmark.yml)
+uses the verified `KAGGLE_API_TOKEN` Actions secret and the existing hosted
+Kaggle dataset. It supports two explicitly named modes:
+
+- **smoke**: 100 historical records, no enrichment, no Qwen, to establish
+  data compatibility, GPU model-load feasibility, runtime, and checkpoint output.
+- **full**: 2,000 year-covered historical records, no enrichment, no Qwen.
+  This is a *benchmark stage*, not full-corpus inference or prevalence analysis.
+
+To launch, select *Submit private Kaggle GPU sentiment benchmark* under GitHub
+Actions and choose a mode. A guarded trigger file `kaggle/launch-smoke.trigger`
+can be added to the feature branch after schema preflight to submit the smoke
+run automatically. Runs execute in **private Kaggle notebooks** using Kaggle GPU
+quota. GitHub logs show status and notebook URL, never tweet content.
+
+The Kaggle notebook title/slug for smoke is `keplaxo/vax-sentiment-benchmark-smoke`,
+and for full is `keplaxo/vax-sentiment-benchmark-full`. GitHub Actions
+submission success does **not** mean Kaggle inference has completed.
