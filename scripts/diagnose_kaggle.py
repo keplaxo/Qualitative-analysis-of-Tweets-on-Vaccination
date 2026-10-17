@@ -45,7 +45,30 @@ def main():
                 print("FULL_NOTEBOOK_LAST_EVENT_TIME_SECONDS:",max([float(e.get("time",0)) for e in events if isinstance(e,dict)] or [0]))
                 print("FULL_NOTEBOOK_STREAMS:",{n:sum(e.get("stream_name")==n for e in events if isinstance(e,dict)) for n in ("stdout","stderr")})
             except (ValueError,TypeError):
-                print("FULL_NOTEBOOK_LOGS_UNPARSEABLE")
+                raw=p.stdout
+                print("FULL_NOTEBOOK_LOG_RESPONSE:",{
+                    "characters":len(raw),
+                    "line_count":len(raw.splitlines()),
+                    "has_traceback":"Traceback" in raw,
+                    "has_python_exception":"Exception encountered" in raw,
+                    "has_gpu_runtime_marker":"GPU runtime:" in raw,
+                    "has_dataset_mount_marker":"Dataset mounted:" in raw,
+                    "has_repository_revision_marker":"Repository revision:" in raw,
+                    "has_language_screen_marker":"Downstream models will use" in raw,
+                    "has_model_inference_marker":"Running: " in raw,
+                    "has_summary_file_marker":"summary.json" in raw,
+                    "contains_queued_message":"queued" in raw.lower(),
+                    "contains_cancel_message":"cancel" in raw.lower(),
+                    "contains_no_logs_message":"no logs" in raw.lower(),
+                })
+                # Only request an allowed non-sensitive aggregate summary.
+                with tempfile.TemporaryDirectory() as tmp:
+                    out=subprocess.run(["kaggle","kernels","output",ref,
+                                        "-p",tmp,"--file-pattern","summary.json"],
+                        capture_output=True,text=True,timeout=75)
+                    found=list(pathlib.Path(tmp).rglob("summary.json"))
+                    print("FULL_NOTEBOOK_SUMMARY_FILE:",bool(found))
+                    print("FULL_NOTEBOOK_OUTPUT_API_SUCCESS:",out.returncode==0)
             continue
         lines=[v for v in p.stdout.splitlines() if PAT.search(v)]
         print("DIAGNOSTIC_LINES: "+str(len(lines)))
