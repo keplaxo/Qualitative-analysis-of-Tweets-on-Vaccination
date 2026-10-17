@@ -1,6 +1,6 @@
 # Protocol: experimental model benchmark v0.1
 
-Updated 17 October 2026. This is a **development experiment**, not a completed accuracy study.
+Updated 17 October 2026. This is a **development experiment**: the 100-record GPU smoke stage completed, but the 2,000-record retry and all independent accuracy testing remain unverified/incomplete. See [WORKFLOW.md](WORKFLOW.md) for the time-stamped execution record.
 
 ## Objective
 
@@ -74,3 +74,12 @@ Before processing millions of records, confirm model load feasibility and stable
 throughput, evaluate external validity where compatible, review abstention rates,
 and justify the target-specific semantic classification strategy. No full-corpus
 deployment or published estimate is authorized by a successful smoke test alone.
+
+
+## Execution checkpoint and eligibility for next stage (17 October 2026)
+
+The hosted Kaggle data source and schema preflight have been verified. The corrected 100-record private GPU smoke run completed, producing 100 multilingual sentiment records, 85 English-screened sentiment records and 85 exploratory NLI stance records. Sentiment label agreement was 56/85 (65.9%) on the overlapping records. These are **coverage and agreement**, not model validity, human adjudication, accuracy, cohort-level incidence or vaccine-stance prevalence.
+
+An earlier smoke run failed because source identifiers recorded in scientific notation were not uniquely reliable for checkpoint joins; the implemented inference record_key now uses exact-text SHA-256. The first 2,000-record notebook was canceled and returned no verified summary. The retry was submitted on 17 October at 15:54 UTC and initially reported QUEUED; its later status is unknown from the checked logs. The planned enrichment (up to 1,000 records) and optional capped Qwen review are **not enabled** in the automated smoke/full benchmark configurations. No manual human-label generation or approval stage is required by the current study design.
+
+A valid completion gate for the 2,000-record stage requires Kaggle COMPLETE, a readable private summary.json, a manifest confirming sample composition, plausible stage coverage and unique checkpoint record keys. These checks establish execution integrity, not accuracy. If external task-matched labeled benchmarks are later used, report their dataset provenance and domain mismatch and keep out-of-domain results separate from this historical corpus.

@@ -1,66 +1,50 @@
-# Kaggle GPU execution guide
+# Kaggle GPU execution and operational checks
 
-This repository contains a Kaggle-compatible Python notebook at
-kaggle/vaccination_benchmark.ipynb. Use a **private** Kaggle dataset containing
-the historical source CSV, and optionally a private enrichment-pool CSV.
+**As of 17 October 2026:** the Kaggle API secret was verified via GitHub Actions. The hosted dataset is linked; the private schema probe and corrected 100-record GPU smoke benchmark completed. A 2,000-record Kaggle benchmark was **resubmitted** at 15:54 UTC after a cancellation and was initially QUEUED; completion of that retry is **not verified** in the last available GitHub logs. See [project workflow and audit evidence](WORKFLOW.md).
 
-1. Enable GPU accelerator and Internet for model downloads, subject to account
-   restrictions and available quotas.
-2. Add only the private data sources to the Kaggle notebook.
-3. Set MASTER_CSV and optionally ENRICHMENT_CSV to real paths under
-   /kaggle/input. Inspect the listed input CSV paths first.
-4. Set TEXT_COLUMN / DATE_COLUMN / ID_COLUMN / LANGUAGE_COLUMN to the actual
-   source schema. IDs must be read as strings.
-5. Run the notebook. The outputs are under /kaggle/working/vax_outputs.
-6. Save the Kaggle notebook version and its output artifacts. The JSONL stages
-   can resume from their existing output files within the same or a restored
-   session, but Kaggle ephemeral storage does not persist across unrelated runs
-   unless outputs are explicitly saved/reintroduced.
+## Approved dataset and source schema
 
-Avoid putting access keys into notebook source, GitHub, or public Kaggle
-datasets. The source corpus is not currently mirrored to the public repository.
+The dataset handle is [keplaxo/twitter-vaccination-dataset](https://www.kaggle.com/datasets/keplaxo/twitter-vaccination-dataset). The probe confirmed two readable files: master.csv and vaccination2.csv. For master.csv, the usable fields include tweet for text, date for timestamp, and id for source ID. The probe found no language column, so the pipeline uses automatic language screening. The Kaggle notebook discovers these headers rather than assuming an unrelated CSV schema.
 
-**Current access:** GitHub write access is confirmed. Direct authenticated
-Kaggle CLI submission is *not* configured in the present execution environment.
-The notebook is prepared but must not be described as a completed GPU run.
+Observed mount path:
 
-## Verified data connection (17 October 2026)
+~~~text
+/kaggle/input/datasets/keplaxo/twitter-vaccination-dataset/master.csv
+~~~
 
-The GitHub Actions Kaggle API secret was verified in a successful authenticated
-metadata discovery. The owner's unique vaccination dataset is
-[`keplaxo/twitter-vaccination-dataset`](https://www.kaggle.com/datasets/keplaxo/twitter-vaccination-dataset).
-The Kaggle metadata identifies `master.csv` and `vaccination2.csv`.
+Alternative Kaggle mount layouts are supported by the notebook. The [schema probe notebook](../kaggle/schema_probe.ipynb) contains only safe schema extraction; never print raw tweet rows or identifiers to GitHub job logs.
 
-The dataset is connected as a **Kaggle data source**, not copied into this public
-code repository. The [private schema probe](schema_probe.ipynb) and
-[`kaggle-schema-preflight.yml`](../.github/workflows/kaggle-schema-preflight.yml)
-verify the mounted file's actual column names before inference.
+## Authentication, privacy, and notebook lifecycle
 
-GitHub Actions secrets accept `KAGGLE_API_TOKEN` (verified) or legacy
-`KAGGLE_USERNAME` and `KAGGLE_KEY`. Never print either credential to logs.
+The GitHub Actions secret KAGGLE_API_TOKEN is verified; legacy KAGGLE_USERNAME and KAGGLE_KEY are also supported by some scripts. Store credentials in **GitHub Actions secrets**, never in repository files, public notebook source, or output artifacts. Kaggle notebook metadata sets is_private=true and dataset_sources to the handle above. GPU and Internet are enabled for the benchmark; the schema probe uses CPU without Internet.
 
-Automated GPU notebook submission should use Kaggle
-`kernel-metadata.json` with `dataset_sources` containing that exact dataset
-reference, `is_private` true and `enable_gpu` true; avoid publishing notebook
-outputs or raw tweet rows as GitHub Actions artifacts.
+Automated submission uses [kaggle-benchmark.yml](../.github/workflows/kaggle-benchmark.yml) with [scripts/submit_kaggle_benchmark.py](../scripts/submit_kaggle_benchmark.py). The staged notebook is [vaccination_benchmark.ipynb](../kaggle/vaccination_benchmark.ipynb).
 
-## GitHub-controlled GPU submission
+| Mode | Notebook | Historical records | Enrichment | Qwen |
+| --- | --- | ---: | ---: | --- |
+| smoke | [Private smoke kernel](https://www.kaggle.com/code/keplaxo/vax-sentiment-benchmark-smoke) | 100 | 0 | Off |
+| full benchmark | [Private full kernel](https://www.kaggle.com/code/keplaxo/vax-sentiment-benchmark-full) | 2,000 | 0 | Off |
 
-The [benchmark submission workflow](../.github/workflows/kaggle-benchmark.yml)
-uses the verified `KAGGLE_API_TOKEN` Actions secret and the existing hosted
-Kaggle dataset. It supports two explicitly named modes:
+The full mode has a smoke-gate check: previous 100-record notebook COMPLETE, summary.json present, 100 multilingual outputs, and nonzero English and zero-shot coverage. Passing that gate allows **submission**, not a claim of later execution success. The additional 1,000-record enrichment pool and optional capped Qwen semantic stage are future **separate** experiment settings, not silently included in either automated mode.
 
-- **smoke**: 100 historical records, no enrichment, no Qwen, to establish
-  data compatibility, GPU model-load feasibility, runtime, and checkpoint output.
-- **full**: 2,000 year-covered historical records, no enrichment, no Qwen.
-  This is a *benchmark stage*, not full-corpus inference or prevalence analysis.
+Branch-based GitHub launch files are kaggle/launch-smoke.trigger and kaggle/launch-full.trigger. For the full trigger, the commit message must contain [full-benchmark] because the workflow derives mode from that literal marker. Avoid touching trigger files in ordinary documentation commits. GitHub manual dispatch and hourly schedules are affected by default-branch registration; while these workflows remain feature-only, do **not** rely on scheduled hourly status checks. After merge, verify action registration, least-privilege secrets, and schedules explicitly.
 
-To launch, select *Submit private Kaggle GPU sentiment benchmark* under GitHub
-Actions and choose a mode. A guarded trigger file `kaggle/launch-smoke.trigger`
-can be added to the feature branch after schema preflight to submit the smoke
-run automatically. Runs execute in **private Kaggle notebooks** using Kaggle GPU
-quota. GitHub logs show status and notebook URL, never tweet content.
+## Running and observing a private Kaggle version
 
-The Kaggle notebook title/slug for smoke is `keplaxo/vax-sentiment-benchmark-smoke`,
-and for full is `keplaxo/vax-sentiment-benchmark-full`. GitHub Actions
-submission success does **not** mean Kaggle inference has completed.
+The submitted notebook clones the feature branch, installs package/requirements, executes synthetic tests, prepares a deterministic sample, automatically screens languages, then runs XLM-R multilingual sentiment, English-screened RoBERTa sentiment, and English-screened DeBERTa NLI. Qwen is conditional, currently off. Output goes to /kaggle/working/vax_outputs, including JSONL checkpoints and summary.json. The notebook prints the cloned repository revision for provenance.
+
+Use [kaggle-status.yml](../.github/workflows/kaggle-status.yml) and [scripts/check_kaggle_runs.py](../scripts/check_kaggle_runs.py) to query actual Kaggle kernel states and retrieve only safe aggregate summaries. For failures, [kaggle-diagnostics.yml](../.github/workflows/kaggle-diagnostics.yml) and [scripts/diagnose_kaggle.py](../scripts/diagnose_kaggle.py) expose limited categories and milestones, not full source text. Inspect private Kaggle notebook logs directly when redaction precludes detailed GitHub diagnosis.
+
+State interpretation: QUEUED and RUNNING are incomplete; CANCEL_ACKNOWLEDGED is not a valid output; COMPLETE plus readable summary.json and expected stage coverage is a usable benchmark checkpoint. A green GitHub Actions submission check **alone** is not that evidence.
+
+## Verified smoke checkpoint and known failure
+
+At the 15:42 UTC status run on 17 October 2026, the corrected smoke kernel was COMPLETE with n_sampled=100, 100 multilingual predictions, 85 English predictions, and 85 exploratory zero-shot stance predictions. The initial smoke run had failed in aggregation because source IDs represented in scientific notation collided (for example, 2.44E+17). The prepare stage now uses exact-text SHA-256 as the inference record_key and deduplicates identical text. English/multilingual sentiment agreed on 56/85 common records (65.9% **agreement, not accuracy**).
+
+The first full benchmark was subsequently canceled. At 15:50 UTC its kernel state was CANCEL_ACKNOWLEDGED and no summary.json was present. After resubmission, the last verified state was QUEUED at 15:54 UTC. **Do not report a completed 2,000-record benchmark without fresh Kaggle state and aggregate output evidence.**
+
+## Checkpointing and troubleshooting
+
+A JSONL stage can skip previously processed record_key values **only if its existing checkpoint file is available**. A new Kaggle version does not automatically inherit /kaggle/working contents of an old version; restore outputs securely before using resumption. Preserve the per-year manifest, model revisions, Git revision, runtime, and hardware metadata.
+
+If a notebook fails, inspect in this order: Kaggle execution state and status timestamps; GPU availability/quota and model downloads; dataset_sources/mount path and chosen text/date columns; identifier/duplicate-key checks; dependency or memory failures; expected JSONL files; summary.json and coverage. Never classify an unfinished, canceled, or missing-summary run as successful. Keep all raw data and row-level outputs in controlled private project storage.
