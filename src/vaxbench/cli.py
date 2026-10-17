@@ -83,13 +83,11 @@ def prepare_one(path, label, args):
     })
     out = out.loc[out["text"].str.strip().ne("")].copy()
     out["text_hash"] = out["text"].map(text_digest)
-    out["record_key"] = (
-        df.loc[out.index, key_col].astype(str)
-        if key_col else out["text_hash"]
-    )
-    # IDs are always strings. No floating-point conversion.
-    out["record_key"] = out["record_key"].mask(
-        out["record_key"].str.strip().eq(""), out["text_hash"])
+    # Tweet IDs in historical CSV exports can be rounded or represented in
+    # scientific notation (e.g., 2.44E+17), creating non-unique identifiers.
+    # Exact-text hashing is the canonical *inference* key. Original source IDs,
+    # if supplied, must not be used to key checkpoints or merge predictions.
+    out["record_key"] = out["text_hash"]
     out["year"] = pd.to_datetime(
         out["raw_date"], errors="coerce", utc=True).dt.year.fillna(0).astype(int)
     out = out.drop_duplicates(subset="text_hash", keep="first")
