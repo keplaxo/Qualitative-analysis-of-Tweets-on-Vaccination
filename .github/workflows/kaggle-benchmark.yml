@@ -16,12 +16,13 @@ on:
       - feature/kaggle-model-benchmark-v1
     paths:
       - "kaggle/launch-smoke.trigger"
+      - "kaggle/launch-full.trigger"
 
 permissions:
   contents: read
 
 concurrency:
-  group: kaggle-vax-submit-${{ github.event.inputs.mode || 'smoke' }}
+  group: kaggle-vax-submit-${{ github.event.inputs.mode || (contains(github.event.head_commit.message, '[full-benchmark]') && 'full') || 'smoke' }}
   cancel-in-progress: false
 
 jobs:
@@ -42,5 +43,5 @@ jobs:
           KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-          BENCHMARK_MODE: ${{ github.event.inputs.mode || 'smoke' }}
+          BENCHMARK_MODE: ${{ github.event.inputs.mode || (contains(github.event.head_commit.message, '[full-benchmark]') && 'full') || 'smoke' }}
         run: python scripts/submit_kaggle_benchmark.py
