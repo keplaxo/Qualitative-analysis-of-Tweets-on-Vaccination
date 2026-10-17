@@ -105,7 +105,7 @@ def sample_year_balanced(df, n):
     eligible = df.loc[df["year"].isin(years)].copy()
     quota = n // len(years)
     slices = [
-        eligible.loc[eligible["year"].eq(year)].nsmallest(quota, "rank")
+        eligible.loc[eligible["year"].eq(year)].sort_values("rank").head(quota)
         for year in years
     ]
     import pandas as pd
@@ -113,8 +113,8 @@ def sample_year_balanced(df, n):
     remainder = max(0, n - len(chosen))
     if remainder:
         rest = eligible.loc[~eligible["text_hash"].isin(chosen["text_hash"])]
-        chosen = pd.concat((chosen, rest.nsmallest(remainder, "rank")))
-    return chosen.nsmallest(n, "rank").sort_values(
+        chosen = pd.concat((chosen, rest.sort_values("rank").head(remainder)))
+    return chosen.sort_values("rank").head(n).sort_values(
         ["year", "rank"]).reset_index(drop=True)
 
 
@@ -124,7 +124,7 @@ def prepare(args):
     if args.enrichment:
         extra = prepare_one(args.enrichment, "purposive_enrichment", args)
         extra = extra.loc[~extra["text_hash"].isin(chosen["text_hash"])]
-        extra = extra.nsmallest(args.enrichment_n, "rank")
+        extra = extra.sort_values("rank").head(args.enrichment_n)
         import pandas as pd
         chosen = pd.concat([chosen, extra], ignore_index=True)
     chosen = chosen.drop(columns=["rank"]).drop_duplicates(subset="text_hash")
