@@ -6,3 +6,4 @@ scikit-learn>=1.4,<2
 sentencepiece>=0.2,<1
 bitsandbytes>=0.45,<1
 pytest>=8,<10
+langid==1.1.6
