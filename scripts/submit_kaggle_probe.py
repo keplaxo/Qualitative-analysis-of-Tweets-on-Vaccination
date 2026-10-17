@@ -19,7 +19,7 @@ def main():
         d=pathlib.Path(tmp)
         shutil.copy2("kaggle/schema_probe.ipynb",d/"schema_probe.ipynb")
         metadata={
-            "id":KERNEL,"title":"Vaccination Research Dataset Schema Probe",
+            "id":KERNEL,"title":"Vax Schema Probe 20261017",
             "code_file":"schema_probe.ipynb","language":"python",
             "kernel_type":"notebook","is_private":True,
             "enable_gpu":False,"enable_internet":False,
