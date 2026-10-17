@@ -175,6 +175,12 @@ def run_sentiment(args):
         # can be supplied by a prior audited preprocessing step.
         work = [r for r in work if str(r.get("language_screen", "")).lower()
                 in ("en", "eng", "english")]
+    # Create a valid empty checkpoint if an audited English language screen
+    # excludes every record; never silently pretend unscreened text is English.
+    if not work and not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.touch()
+        print("No eligible unseen records for " + args.model + " sentiment stage")
     metadata = {"model": model, "revision": pipe.model.config._commit_hash,
                 "task": "emotional_sentiment_only", "device": gpu_device()}
     for i in range(0, len(work), args.batch_size):
