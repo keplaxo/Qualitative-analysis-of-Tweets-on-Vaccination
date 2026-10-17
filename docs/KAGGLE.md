@@ -23,3 +23,23 @@ datasets. The source corpus is not currently mirrored to the public repository.
 **Current access:** GitHub write access is confirmed. Direct authenticated
 Kaggle CLI submission is *not* configured in the present execution environment.
 The notebook is prepared but must not be described as a completed GPU run.
+
+## Verified data connection (17 October 2026)
+
+The GitHub Actions Kaggle API secret was verified in a successful authenticated
+metadata discovery. The owner's unique vaccination dataset is
+[`keplaxo/twitter-vaccination-dataset`](https://www.kaggle.com/datasets/keplaxo/twitter-vaccination-dataset).
+The Kaggle metadata identifies `master.csv` and `vaccination2.csv`.
+
+The dataset is connected as a **Kaggle data source**, not copied into this public
+code repository. The [private schema probe](schema_probe.ipynb) and
+[`kaggle-schema-preflight.yml`](../.github/workflows/kaggle-schema-preflight.yml)
+verify the mounted file's actual column names before inference.
+
+GitHub Actions secrets accept `KAGGLE_API_TOKEN` (verified) or legacy
+`KAGGLE_USERNAME` and `KAGGLE_KEY`. Never print either credential to logs.
+
+Automated GPU notebook submission should use Kaggle
+`kernel-metadata.json` with `dataset_sources` containing that exact dataset
+reference, `is_private` true and `enable_gpu` true; avoid publishing notebook
+outputs or raw tweet rows as GitHub Actions artifacts.
