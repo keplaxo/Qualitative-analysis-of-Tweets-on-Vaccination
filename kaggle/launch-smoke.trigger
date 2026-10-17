@@ -1,0 +1,1 @@
+2026-10-17: Initiate one private Kaggle GPU smoke benchmark (100 year-covered records, Qwen disabled). Dataset keplaxo/twitter-vaccination-dataset is mounted by Kaggle. This trigger does not contain credentials or tweet text.
