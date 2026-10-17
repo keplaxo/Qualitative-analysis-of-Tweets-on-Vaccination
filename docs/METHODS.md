@@ -24,14 +24,18 @@ targets**, and their predicted labels must never be conflated.
 
 ## Stages and interpretation
 
-A. **English sentiment**: CardiffNLP Twitter-RoBERTa for *verified*
-   English-screened records only. Unknown language is not silently assumed English.
-B. **Multilingual sentiment**: CardiffNLP Twitter XLM-R for the entire sample.
+A. **Language screening**: retain pre-existing source language values; when
+   absent, run langid.py as an explicitly unvalidated automatic screen on the
+   sampled texts, withholding labels on extremely short content. This adds no
+   human-annotated reference data.
+B. **English sentiment**: CardiffNLP Twitter-RoBERTa for English-screened
+   records only. Automatically predicted English is not verified ground truth.
+C. **Multilingual sentiment**: CardiffNLP Twitter XLM-R for the entire sample.
    English/multilingual comparisons are descriptive, not validity statistics.
-C. **Exploratory generic vaccine stance**: DeBERTa-v3 zero-shot NLI with explicit
+D. **Exploratory generic vaccine stance**: DeBERTa-v3 zero-shot NLI with explicit
    candidate descriptions. Model scores and margins drive only **heuristic**
    abstention; they are not calibrated probabilities or accuracy.
-D. **Semantic adjudication**: Qwen3-4B-Instruct-2507 for up to 300
+E. **Semantic adjudication**: Qwen3-4B-Instruct-2507 for up to 300
    early-stage cases, favoring cross-model disagreement, ambiguities and a
    random agreement audit in the later experiment. The notebook uses a frozen 60% low-margin/abstention enrichment plus
    40% hash-ranked routine cases, with calendar-year coverage. Record-level
