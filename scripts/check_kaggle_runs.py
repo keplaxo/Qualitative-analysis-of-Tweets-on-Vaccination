@@ -40,6 +40,7 @@ def main():
     if not (os.environ.get("KAGGLE_API_TOKEN") or
             (os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY"))):
         raise RuntimeError("Kaggle credentials missing")
+    # Re-check all private runs after the verified schema-preflight completion.
     records=[one(label,cfg) for label,cfg in TASKS.items()]
     print(json.dumps(records,indent=2))
     summary=os.environ.get("GITHUB_STEP_SUMMARY")
