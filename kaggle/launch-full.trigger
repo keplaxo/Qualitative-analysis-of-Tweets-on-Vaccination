@@ -1,0 +1,1 @@
+2026-10-17: Launch one gated 2,000-tweet historical Kaggle GPU benchmark after validated 100-tweet smoke inference and output summary; no enrichment or Qwen in this run. Private data and outputs stay in Kaggle.
