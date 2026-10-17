@@ -38,6 +38,7 @@ def main():
             print(line)
         if not lines:
             print("No exception or error markers found in Kaggle logs.")
+        print("DIAGNOSTICS_CHECKED: most recent Kaggle run, 17 October")
         try:
             events=json.loads(p.stdout)
             for event in events:
