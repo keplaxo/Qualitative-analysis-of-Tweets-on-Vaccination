@@ -22,6 +22,7 @@ def main():
                          capture_output=True,text=True,timeout=90)
         if p.returncode:
             print("LOGS: unavailable (exit "+str(p.returncode)+")")
+            print("DIAGNOSTIC: "+(p.stderr or p.stdout).strip()[:280])
             continue
         lines=[v for v in p.stdout.splitlines() if PAT.search(v)]
         print("DIAGNOSTIC_LINES: "+str(len(lines)))
