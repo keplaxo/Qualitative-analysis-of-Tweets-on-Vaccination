@@ -2,7 +2,7 @@
 
 Reproducible research pipeline for model-assisted analysis of historical vaccination-related tweets (2006–2019). The pipeline separates **sentiment polarity** (positive, neutral, negative) from **the author's stance toward vaccination** (support, oppose, uncertain, mixed, no expressed stance, insufficient context).
 
-**Active development:** [feature/kaggle-model-benchmark-v1](../../tree/feature/kaggle-model-benchmark-v1) ([pull request #1](../../pull/1)). The default branch, master, has not yet received this implementation.
+**Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
 ## Verified progress — 17 October 2026
 

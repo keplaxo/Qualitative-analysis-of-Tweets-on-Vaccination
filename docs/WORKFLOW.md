@@ -1,6 +1,6 @@
 # Project workflow, execution evidence, and release gates
 
-**Last documentation update:** 17 October 2026. **Active branch:** feature/kaggle-model-benchmark-v1. **Base branch:** master. **PR:** [#1](../../pull/1), open at the last inspection. This document distinguishes implemented code, completed notebook inference, GitHub job submission, and research validation.
+**Last documentation update:** 17 October 2026. **Active branch:** feature/kaggle-model-benchmark-v1. **Base branch:** master. **PR:** [#1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1), open at the last inspection. This document distinguishes implemented code, completed notebook inference, GitHub job submission, and research validation.
 
 ## 1. Research workflow
 
@@ -29,13 +29,13 @@ A GitHub job marked success can mean only that the Kaggle kernel was submitted. 
 | --- | --- | --- |
 | Data preflight | Private schema probe COMPLETE; master.csv and vaccination2.csv readable | Authorized dataset mounted, source schema known |
 | First smoke attempt | Kaggle diagnostic showed duplicate prediction key caused by scientific-notation ID | Initial attempt failed; do not count as successful inference |
-| Corrected smoke | [GitHub status run](../../actions/runs/39046209397) at 15:42 UTC: smoke COMPLETE; summary.json retrievable | **100** sampled; **100** multilingual sentiment; **85** English sentiment; **85** zero-shot stance |
+| Corrected smoke | [GitHub status run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39046209397) at 15:42 UTC: smoke COMPLETE; summary.json retrievable | **100** sampled; **100** multilingual sentiment; **85** English sentiment; **85** zero-shot stance |
 | Cross-model sentiment | Same smoke summary: **56/85** paired labels match (65.9%) | Agreement, **not** independently verified accuracy |
-| First 2,000-tweet attempt | [Cancellation diagnostic](../../actions/runs/39046808459) at 15:50 UTC: CANCEL_ACKNOWLEDGED, no summary.json | No completed full-stage output established |
-| 2,000-tweet retry | [Submission log](../../actions/runs/39047084057) at 15:54 UTC: submission SUCCESS; initial Kaggle state QUEUED | Job submitted; **no later Kaggle completion/summary verified by this audit** |
-| Latest tested feature head before documentation | 36123bf1a524f15f91cd76c295216e2b57c35522; [CI succeeded](../../actions/runs/39047086976) | Code-level test pass, not scientific validation |
+| First 2,000-tweet attempt | [Cancellation diagnostic](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39046808459) at 15:50 UTC: CANCEL_ACKNOWLEDGED, no summary.json | No completed full-stage output established |
+| 2,000-tweet retry | [Submission log](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39047084057) at 15:54 UTC: submission SUCCESS; initial Kaggle state QUEUED | Job submitted; **no later Kaggle completion/summary verified by this audit** |
+| Latest tested feature head before documentation | 36123bf1a524f15f91cd76c295216e2b57c35522; [CI succeeded](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39047086976) | Code-level test pass, not scientific validation |
 
-Smoke summary label distributions and model revisions are retained in the [status-run log](../../actions/runs/39046209397); they are model outputs for a nonrepresentative sample and should not be presented as population results.
+Smoke summary label distributions and model revisions are retained in the [status-run log](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39046209397); they are model outputs for a nonrepresentative sample and should not be presented as population results.
 
 ## 4. Output contract and provenance
 
