@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 from vaxbench.cli import main
+from vaxbench.core import text_digest
 
 def test_prepare_year_coverage_and_dedup(tmp_path):
     source = tmp_path / "source.csv"
@@ -26,7 +27,9 @@ def test_prepare_year_coverage_and_dedup(tmp_path):
     assert len(df) == 4
     assert set(df["year"]) == {"2006", "2007"}
     assert df["text"].nunique() == 4
-    assert "1234567890123456789" in set(df["record_key"])
+    assert text_digest("Vaccination appointment today") in set(df["record_key"])
+    assert set(df["record_key"]) == set(df["text_hash"])
+    assert df["record_key"].nunique() == len(df)
     assert json.loads((tmp_path/"sample.csv.manifest.json").read_text())["n_records"] == 4
     before = output.read_bytes()
     main(params)
