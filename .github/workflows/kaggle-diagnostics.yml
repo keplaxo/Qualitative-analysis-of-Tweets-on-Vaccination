@@ -7,6 +7,7 @@ on:
       - feature/kaggle-model-benchmark-v1
     paths:
       - ".github/workflows/kaggle-diagnostics.yml"
+      - "scripts/diagnose_kaggle.py"
 
 permissions:
   contents: read
