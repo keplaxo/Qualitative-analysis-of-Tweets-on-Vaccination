@@ -50,3 +50,11 @@ These synthetic tests verify software behavior, not classification quality. See 
 ## Research and data policy
 
 **Public repository: code and documentation only.** Never commit tweet text, archives, tweet/user identifiers, licensed third-party corpora, Kaggle credentials, model weights, or per-record inference outputs. Keep study inputs and detailed artifacts in controlled research storage. Do not treat machine-generated labels, evidence substrings, cross-model agreement, or sentiment about disease/policy as independent proof of vaccine stance, model accuracy, or vaccine-related causality. Historical research checkpoints remain separate and immutable.
+
+## Automated next-stage execution (18 October 2026)
+
+The private 2,000-record Kaggle benchmark is **COMPLETE** (2,000 multilingual, 1,666 English sentiment and 1,666 zero-shot stance predictions). The following pipeline has been installed and activated on the repository's **master branch** [hourly GitHub Actions scheduler](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/.github/workflows/vax-kaggle-scheduler.yml):
+
+\`Qwen 20-case pilot → Qwen 300-case semantic review with pilot reuse → CPU aggregate model comparison and research report\`.
+
+The first [orchestrator run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39081406763) successfully **submitted** the 20-case pilot. The hourly controller checks completion and structural quality before launching each dependent stage. It never re-runs a canceled or failed notebook automatically. Automatic full-corpus inference is not part of this chain. Original tweets and per-record outputs remain in private Kaggle notebook inputs and outputs, not this public repository. See [workflow gates](docs/WORKFLOW.md#7-automatically-scheduled-qwen-and-research-report-stages-18-october-2026).
