@@ -48,6 +48,33 @@ def main():
                     r"ValueError|RuntimeError|FileNotFoundError|"
                     r"CalledProcessError|AttributeError|AssertionError)\\b",
                     messages)))
+                ex=sorted(set(re.findall(
+                    r"(?:RuntimeError|ValueError|ModuleNotFoundError|"
+                    r"ImportError|CalledProcessError|AttributeError|"
+                    r"AssertionError|KeyError|TypeError|OSError|"
+                    r"OutOfMemoryError|CUDAError|SystemExit)",
+                    messages)))
+                checkpoints=re.findall(r"Qwen (\\d+)/(\\d+)",messages)
+                stage_counts={
+                    name:messages.count(name)
+                    for name in ("V2_AGGREGATE","V2_SCHEMA_GATE_PASSED",
+                                 "V2_SCHEMA_GATE_BLOCKED",
+                                 "Incomplete versioned Qwen v2 checkpoint",
+                                 "V2 join and exact-text SHA-256",
+                                 "V2 pilot failed",
+                                 "Insufficient frozen records",
+                                 "Qwen 10/","Qwen 12/")}
+                paths=re.findall(
+                    r"File [\\\"]([^\\\"]*(?:v2_experiment\\.py|cli\\.py|v2_selection\\.py))"
+                    r"[\\\"], line (\\d+)",messages)
+                # Emit only approved static module basenames and line numbers.
+                paths=[(x.rsplit("/",1)[-1],int(y)) for x,y in paths]
+                print("V2_PILOT_EXECUTION_SIGNALS:",json.dumps({
+                    "exception_types":ex,"model_progress_tail":checkpoints[-4:],
+                    "stage_marker_counts":stage_counts,
+                    "project_traceback_locations":paths[-8:],
+                    "last_three_event_streams":[str(v.get("stream_name","unknown"))
+                        for v in events[-3:] if isinstance(v,dict)]}))
                 print("V2_PILOT_SAFE_DIAGNOSTIC:",json.dumps({
                     "log_events":len(events),
                     "module_names":modules[:12],
