@@ -1,0 +1,34 @@
+name: Repair failed Qwen V2 pilot once
+
+on:
+  push:
+    branches: [master]
+    paths: [".github/workflows/vax-v2-pilot-recovery.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vaccination-v2-private-controlled-20261018
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kaggle-model-benchmark-v1
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Re-submit only prior ERROR pilot with verified path fix
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/retry_v2_pilot.py
