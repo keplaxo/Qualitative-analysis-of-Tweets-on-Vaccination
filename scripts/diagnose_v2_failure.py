@@ -36,8 +36,8 @@ def main():
       "error_types":{err:len(re.findall(err,whole)) for err in ERRORS if err in whole},
       "milestones":{k:whole.count(k) for k in MARKERS if k in whole},
       "last_progress":[list(map(int,v)) for v in re.findall(r"Qwen (\d+)/(\d+)",whole)[-6:]],
-      "project_traceback_lines":[[m,int(n)] for m,n in
-        re.findall(r"(?:v2_experiment|cli|v2_selection|ontology_v2)\.py[\"', ]+line (\d+)",whole)],
+      "project_traceback_lines":[int(n) for n in
+        re.findall(r"(?:v2_experiment|cli|v2_selection|ontology_v2)\.py[^\\n]{0,50}?line (\\d+)",whole)],
       "tail_events":[{"stream":str(x.get("stream_name")),
                       "time":round(float(x.get("time",0)),1),
                       "size":len(str(x.get("data",""))),
