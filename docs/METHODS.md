@@ -1,6 +1,6 @@
 # Protocol: experimental model benchmark v0.1
 
-Updated 17 October 2026. This is a **development experiment**: the 100-record GPU smoke stage completed, but the 2,000-record retry and all independent accuracy testing remain unverified/incomplete. See [WORKFLOW.md](WORKFLOW.md) for the time-stamped execution record.
+Updated 18 October 2026. This is a **development experiment**: 100-record, 2,000-record, Qwen pilot and Qwen 300 computational stages all completed, followed by a 290-pair CPU-only disagreement audit. No independent in-domain accuracy estimate exists. See [WORKFLOW.md](WORKFLOW.md) and [STANCE_DISAGREEMENT_AUDIT.md](STANCE_DISAGREEMENT_AUDIT.md) for the time-stamped execution record and diagnosis.
 
 ## Objective
 
@@ -76,10 +76,10 @@ and justify the target-specific semantic classification strategy. No full-corpus
 deployment or published estimate is authorized by a successful smoke test alone.
 
 
-## Execution checkpoint and eligibility for next stage (17 October 2026)
+## Execution checkpoint and next experimental gate (18 October 2026)
 
-The hosted Kaggle data source and schema preflight have been verified. The corrected 100-record private GPU smoke run completed, producing 100 multilingual sentiment records, 85 English-screened sentiment records and 85 exploratory NLI stance records. Sentiment label agreement was 56/85 (65.9%) on the overlapping records. These are **coverage and agreement**, not model validity, human adjudication, accuracy, cohort-level incidence or vaccine-stance prevalence.
+All scheduled development stages completed: 100-record smoke, 2,000-record year-covered benchmark, 20-record Qwen pilot, 300-record Qwen targeted review, and the private CPU aggregate report. In the 2,000 sample, model coverage was XLM-T 2,000, Twitter-RoBERTa 1,666, and DeBERTa NLI 1,666. Qwen returned 290 structurally valid annotations from 300 processed tweets.
 
-An earlier smoke run failed because source identifiers recorded in scientific notation were not uniquely reliable for checkpoint joins; the implemented inference record_key now uses exact-text SHA-256. The first 2,000-record notebook was canceled and returned no verified summary. The retry was submitted on 17 October at 15:54 UTC and initially reported QUEUED; its later status is unknown from the checked logs. The planned enrichment (up to 1,000 records) and optional capped Qwen review are **not enabled** in the automated smoke/full benchmark configurations. No manual human-label generation or approval stage is required by the current study design.
+The [CPU-only discrepancy audit](STANCE_DISAGREEMENT_AUDIT.md) checked exact SHA-256 text identity for all 300 cases and obtained 290 valid pairs. Exact Qwen–DeBERTa stance agreement was **31/290 (10.7%)**, dominated by DeBERTa `insufficient_context` versus Qwen `uncertain` (130 records). The deliberately enriched NLI low-margin/abstention group had 0/176 matches; the comparison group had 31/114 (27.2%). Qwen produced no `insufficient_context` labels and 182 `uncertain` labels. These results describe ontology use, model agreement and selection artifacts—not independent accuracy.
 
-A valid completion gate for the 2,000-record stage requires Kaggle COMPLETE, a readable private summary.json, a manifest confirming sample composition, plausible stage coverage and unique checkpoint record keys. These checks establish execution integrity, not accuracy. If external task-matched labeled benchmarks are later used, report their dataset provenance and domain mismatch and keep out-of-domain results separate from this historical corpus.
+**Gate for the next stage:** freeze the existing predictions, prespecify a clarified stance ontology separating expressed hesitancy, absence of author stance, and inability to determine stance, and run a versioned limited re-inference/benchmark experiment. Select legally accessible, independently labeled vaccine-stance reference sets where task-aligned, without establishing a new human-label approval workflow. Report external validity and domain transfer limitations explicitly. **No full-corpus inference, prevalence estimate, or accuracy statement is authorized on the basis of model-model agreement.**
