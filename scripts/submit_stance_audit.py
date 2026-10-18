@@ -45,6 +45,13 @@ def main():
             "mentions_url":"kaggle.com/code/" in joined,
             "mentions_kernel_slug":KERNEL in joined},flush=True)
         if p.returncode:
+            # Only source/metadata submission messages, never private research
+            # content. Remove URLs, long opaque tokens, and e-mail addresses.
+            message=(p.stderr or p.stdout)[:700]
+            message=re.sub(r"https?://\\S+","[url]",message)
+            message=re.sub(r"[A-Za-z0-9_.+%-]+@[A-Za-z0-9_.-]+","[email]",message)
+            message=re.sub(r"[A-Za-z0-9_-]{28,}","[token]",message)
+            print("SANITIZED_SUBMISSION_FAILURE",repr(message[:550]),flush=True)
             raise RuntimeError("Private Kaggle CPU audit submission failed: exit "+
                                str(p.returncode)+" category="+category)
     print("CPU_ONLY_AUDIT_SUBMITTED",KERNEL)
