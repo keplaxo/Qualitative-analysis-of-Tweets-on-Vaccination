@@ -56,3 +56,29 @@ def select_v2_cases(nli_by_key, qwen_by_key, limit=60):
             used.add(key)
     assert len(selected)==60 and len(used)==60
     return selected
+
+
+def merge_v2_selection(selected, triage):
+    """Preserve frozen v2 design strata when joining earlier triage data.
+
+    Both tables have a selection_reason column. Dropping the original triage
+    reason prevents pandas from creating selection_reason_x and
+    selection_reason_y, which would break downstream aggregate reporting.
+    The earlier triage reason is represented by the frozen v1 artifact and
+    is not used for v2 stratification.
+    """
+    import pandas as pd
+    design=pd.DataFrame(selected)
+    if (design.empty or design["record_key"].duplicated().any()
+        or design["selection_reason"].isna().any()):
+        raise ValueError("Invalid v2 design case selection")
+    if triage["record_key"].duplicated().any():
+        raise ValueError("Original triage is not unique by exact text key")
+    original=triage.drop(columns=["selection_reason"],errors="ignore")
+    joined=design.merge(original,on="record_key",how="left",
+                        validate="one_to_one")
+    if "text" not in joined or joined["text"].isna().any():
+        raise ValueError("v2 case text not joined from original triage")
+    if len(joined)!=len(design) or "selection_reason" not in joined:
+        raise ValueError("v2 design selection reason lost during merge")
+    return joined
