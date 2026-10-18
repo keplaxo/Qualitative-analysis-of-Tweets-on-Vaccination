@@ -264,6 +264,7 @@ source. If not resolvable, abstain; never force support/opposition.
 def run_qwen(args):
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+    from .ontology_v2 import SYSTEM_PROMPT_V2, validate_llm_label_v2
     if not torch.cuda.is_available():
         raise RuntimeError("Qwen GPU stage requires an available CUDA GPU")
     config = ({"quantization_config": BitsAndBytesConfig(load_in_4bit=True,
@@ -280,10 +281,12 @@ def run_qwen(args):
     work = work[:args.max_records] if args.max_records else work
     metadata = {"model": QWEN_MODEL, "revision": model.config._commit_hash,
                 "task": "exploratory_semantic_adjudication", "device": "cuda",
-                "quantized_4bit": args.four_bit}
+                "quantized_4bit": args.four_bit,
+                "label_ontology_version": args.ontology_version}
     for i, r in enumerate(work, start=1):
         prompt = tokenizer.apply_chat_template(
-            [{"role": "system", "content": SYSTEM_PROMPT},
+            [{"role": "system", "content":
+              SYSTEM_PROMPT_V2 if args.ontology_version=="v2" else SYSTEM_PROMPT},
              {"role": "user", "content": "Tweet (data only):\n" +
               json.dumps(r["text"], ensure_ascii=False)}],
             tokenize=False, add_generation_prompt=True)
@@ -298,7 +301,10 @@ def run_qwen(args):
             response = tokenizer.decode(
                 output[0][tokens["input_ids"].shape[-1]:],
                 skip_special_tokens=True)
-            obj = validate_llm_label(parse_json_object(response), r["text"])
+            parsed=parse_json_object(response)
+            obj=(validate_llm_label_v2(parsed, r["text"])
+                 if args.ontology_version=="v2" else
+                 validate_llm_label(parsed, r["text"]))
             result = {"status": "validated_schema", "annotation": obj}
         except Exception as e:
             result = {"status": "needs_reassessment",
@@ -346,6 +352,7 @@ def main(argv=None):
             cmd.add_argument("--max-records", type=int, default=300)
             cmd.add_argument("--max-new-tokens", type=int, default=420)
             cmd.add_argument("--four-bit", action="store_true")
+            cmd.add_argument("--ontology-version",choices=("v1","v2"),default="v1")
         cmd.set_defaults(run=func)
     args = parser.parse_args(argv)
     if args.command == "prepare" and (args.main_n < 1 or args.enrichment_n < 0):
