@@ -8,6 +8,7 @@ TASKS={
   "benchmark_full":{"ref":"keplaxo/vax-sentiment-benchmark-full","report":"summary.json"},
   "v2_pilot":{"ref":"keplaxo/vax-stance-v2-pilot-20261018","report":"v2_aggregate.json"},
   "v2_full":{"ref":"keplaxo/vax-stance-v2-full-20261018","report":"v2_aggregate.json"},
+  "external_intent_proxy":{"ref":"keplaxo/vax-v2-intent-proxy-20261018","report":"vacma_intent_evaluation.json"},
   "external_schema":{"ref":"keplaxo/vax-external-reference-probe-20261018","report":"external_benchmark_schema.json"},
   "stance_audit":{"ref":"keplaxo/vaccination-stance-disagreement-audit","report":"stance_disagreement_audit.json"},
 }
