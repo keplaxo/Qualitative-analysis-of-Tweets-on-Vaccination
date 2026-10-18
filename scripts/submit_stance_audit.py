@@ -1,6 +1,6 @@
 """Submit exactly one private, CPU-only diagnostic kernel, fail closed."""
 import json,os,pathlib,re,subprocess,sys,tempfile
-KERNEL="keplaxo/vax-stance-disagreement-audit"
+KERNEL="keplaxo/vax-stance-audit-20261018-v1"
 SOURCES=["keplaxo/vax-sentiment-benchmark-full","keplaxo/vax-qwen-300"]
 def run(*parts):
     return subprocess.run(["kaggle",*parts],capture_output=True,text=True,timeout=180)
