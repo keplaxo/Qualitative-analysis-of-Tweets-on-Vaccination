@@ -9,7 +9,13 @@ def main():
     while True:
         p=cli("kernels","status",KERNEL,timeout=75)
         if p.returncode:
-            raise RuntimeError("Audit status request unavailable")
+            # Immediately after submission Kaggle may return 404 / no status
+            # while the new kernel is being registered. This is transient.
+            if time.monotonic()>deadline:
+                print("AUDIT_STATUS_UNAVAILABLE; no duplicate submission.")
+                return
+            time.sleep(15)
+            continue
         m=re.findall(r"KernelWorkerStatus\.([A-Z_]+)",p.stdout)
         state=m[-1] if m else "UNKNOWN"
         if state in ("ERROR","FAILED","CANCELLED","CANCELED","CANCEL_ACKNOWLEDGED"):
