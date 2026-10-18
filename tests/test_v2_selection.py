@@ -37,3 +37,33 @@ def test_selection_requires_prespecified_strata():
     import pytest
     with pytest.raises(ValueError,match="Insufficient frozen"):
         select_v2_cases(d,q)
+
+
+def test_v2_selection_merge_preserves_v2_strata_without_suffixes():
+    import pandas as pd
+    from vaxbench.v2_selection import merge_v2_selection
+    selected=[{"record_key":"a","selection_reason":"exact_agreement_controls"},
+              {"record_key":"b","selection_reason":"abstention_vs_uncertain"}]
+    triage=pd.DataFrame([
+        {"record_key":"b","selection_reason":"low_margin_or_abstention","text":"B"},
+        {"record_key":"a","selection_reason":"hash_ranked_comparison","text":"A"}
+    ])
+    joined=merge_v2_selection(selected,triage)
+    assert joined["selection_reason"].tolist()==[
+        "exact_agreement_controls","abstention_vs_uncertain"]
+    assert joined["text"].tolist()==["A","B"]
+    assert "selection_reason_x" not in joined
+    assert "selection_reason_y" not in joined
+
+def test_v2_merge_rejects_missing_and_duplicate_input_text():
+    import pandas as pd
+    import pytest
+    from vaxbench.v2_selection import merge_v2_selection
+    cases=[{"record_key":"a","selection_reason":"exact_agreement_controls"}]
+    with pytest.raises(ValueError,match="not joined"):
+        merge_v2_selection(cases,pd.DataFrame([
+            {"record_key":"b","selection_reason":"old","text":"B"}]))
+    with pytest.raises(ValueError,match="not unique"):
+        merge_v2_selection(cases,pd.DataFrame([
+            {"record_key":"a","selection_reason":"old","text":"A"},
+            {"record_key":"a","selection_reason":"old","text":"A"}]))
