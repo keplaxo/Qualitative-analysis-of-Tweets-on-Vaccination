@@ -6,6 +6,9 @@ TASKS={
   "schema_probe":{"ref":"keplaxo/vax-schema-probe-20261017","report":"schema_probe.json"},
   "benchmark_smoke":{"ref":"keplaxo/vax-sentiment-benchmark-smoke","report":"summary.json"},
   "benchmark_full":{"ref":"keplaxo/vax-sentiment-benchmark-full","report":"summary.json"},
+  "v2_pilot":{"ref":"keplaxo/vax-stance-v2-pilot-20261018","report":"v2_aggregate.json"},
+  "v2_full":{"ref":"keplaxo/vax-stance-v2-full-20261018","report":"v2_aggregate.json"},
+  "external_schema":{"ref":"keplaxo/vax-external-reference-probe-20261018","report":"external_benchmark_schema.json"},
   "stance_audit":{"ref":"keplaxo/vaccination-stance-disagreement-audit","report":"stance_disagreement_audit.json"},
 }
 
