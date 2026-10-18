@@ -3,7 +3,8 @@ import os,re,subprocess,sys,csv,io,json,tempfile,pathlib
 REFS=("keplaxo/vax-schema-probe-20261017",
       "keplaxo/vax-sentiment-benchmark-smoke",
       "keplaxo/vax-sentiment-benchmark-full",
-      "keplaxo/vax-stance-disagreement-audit")
+      "keplaxo/vax-stance-disagreement-audit",
+      "keplaxo/vax-stance-v2-pilot-20261018")
 PAT=re.compile(r"Traceback|Exception|Error|No module named|No such file|not found|"
                r"ModuleNotFound|ImportError|OSError|RuntimeError|ValueError|"
                r"FileNotFound|SyntaxError|KeyError|AssertionError|"
@@ -31,6 +32,38 @@ def main():
         if p.returncode:
             print("LOGS: unavailable (exit "+str(p.returncode)+")")
             print("DIAGNOSTIC: "+(p.stderr or p.stdout).strip()[:280])
+            continue
+        if ref.endswith("v2-pilot-20261018"):
+            # Strictly metadata/traceback type only: never print a source tweet,
+            # model-generated response, prompt, row hash, or secret.
+            try:
+                events=json.loads(p.stdout)
+                messages="\n".join(str(e.get("data","")) for e in events
+                                   if isinstance(e,dict))
+                modules=sorted(set(re.findall(
+                    r"No module named ['\\\"]([a-zA-Z0-9_.-]+)['\\\"]",
+                    messages)))
+                errors=sorted(set(re.findall(
+                    r"\\b(?:ModuleNotFoundError|ImportError|SyntaxError|"
+                    r"ValueError|RuntimeError|FileNotFoundError|"
+                    r"CalledProcessError|AttributeError|AssertionError)\\b",
+                    messages)))
+                print("V2_PILOT_SAFE_DIAGNOSTIC:",json.dumps({
+                    "log_events":len(events),
+                    "module_names":modules[:12],
+                    "exception_types":errors,
+                    "reached_versioned_inference":"V2_STAGE" in messages,
+                    "reached_new_model_load":"Qwen 10/" in messages,
+                    "mentions_repo_clone":"Cloning into" in messages,
+                    "mentions_pip_failure":"subprocess.CalledProcessError" in messages,
+                    "mentions_output_gate":"V2_SCHEMA_GATE" in messages,
+                    "error_last_lines":[x[:180] for x in messages.splitlines()
+                      if re.match(r"^(?:ModuleNotFoundError|ImportError|"
+                       r"SyntaxError|AttributeError|FileNotFoundError|"
+                       r"RuntimeError|ValueError):",x.strip())][-8:]
+                }))
+            except (ValueError,TypeError):
+                print("V2_PILOT_LOG_FORMAT_NOT_JSON")
             continue
         if ref.endswith("-full"):
             try:
