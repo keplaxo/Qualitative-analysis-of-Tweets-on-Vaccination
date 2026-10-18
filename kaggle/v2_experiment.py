@@ -70,11 +70,10 @@ src_dir=repo/"src"
 if not (src_dir/"vaxbench"/"v2_selection.py").is_file():
     raise RuntimeError("Checked-out v2 package source is missing")
 sys.path.insert(0,str(src_dir))
-from vaxbench.v2_selection import select_v2_cases
+from vaxbench.v2_selection import select_v2_cases, merge_v2_selection
 from vaxbench.core import text_digest
 selected=select_v2_cases(pred_nli,pred_v1)
-s=pd.DataFrame(selected)
-data=s.merge(queue,on="record_key",how="left",validate="one_to_one")
+data=merge_v2_selection(selected,queue)
 if (len(data)!=60 or data["text"].isna().any() or
     data["record_key"].nunique()!=60 or
     not all(text_digest(str(t))==k for t,k in
