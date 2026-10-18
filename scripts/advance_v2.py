@@ -21,6 +21,10 @@ STAGES=[
   "title":"Vax External Reference Probe 20261018",
   "file":"kaggle/external_benchmark_probe.py",
   "inputs":[],"gpu":False,"mode":None,"timeout":1200},
+ {"name":"external_intent_proxy","ref":"keplaxo/vax-v2-intent-proxy-20261018",
+  "title":"Vax V2 Intent Proxy 20261018",
+  "file":"kaggle/vacma_intent_evaluation.py",
+  "inputs":[],"gpu":True,"mode":None,"timeout":7200},
 ]
 def kaggle(*args,timeout=120):
     return subprocess.run(["kaggle",*args],capture_output=True,text=True,timeout=timeout)
@@ -123,15 +127,24 @@ def main():
         if current=="COMPLETE":
             if i==0:check_pilot()
             elif i==1:check_full()
-            else:
+            elif i==2:
                 result=approved_file(step["ref"],"external_benchmark_schema.json")
                 if (result.get("doi")!="10.5281/zenodo.7601328" or
-                    result.get("accuracy_evaluated") is not False):
-                    raise RuntimeError("Public reference preflight failed")
+                    result.get("accuracy_evaluated") is not False or
+                    "text" in result.get("files",{}).get("test",{}).get("columns",[])):
+                    raise RuntimeError("Published VaxxHesitancy ID-only schema differs")
+                print("ID_ONLY_REFERENCE_VERIFIED: no text rehydration attempted",flush=True)
+            else:
+                evaluation=approved_file(step["ref"],"vacma_intent_evaluation.json")
+                if (evaluation.get("eligible_unique_tweets")!=61 or
+                    evaluation.get("six_way_vaccine_stance_accuracy_measured") is not False or
+                    evaluation.get("no_tweet_text_or_row_data_published") is not True):
+                    raise RuntimeError("External intention proxy evaluation missing or unsafe")
                 print("V2_DEVELOPMENT_PIPELINE_COMPLETE",json.dumps({
                     "versioned_60_case_analysis":True,
-                    "public_reference_schema_checked":True,
-                    "independent_accuracy_still_pending":True,
+                    "public_id_only_reference_verified":True,
+                    "independent_out_of_domain_intention_proxy_evaluated":True,
+                    "exact_six_way_stance_accuracy_still_pending":True,
                     "full_corpus_not_authorized":True
                 }),flush=True)
             continue
