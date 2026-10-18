@@ -29,8 +29,24 @@ def main():
               "competition_sources":[],"model_sources":[]}
         (root/"kernel-metadata.json").write_text(json.dumps(meta))
         p=run("kernels","push","-p",str(root),"--timeout","1800")
+        # Kaggle may return a successful process exit even if its response
+        # names an access, quota, or metadata failure. Print only classified
+        # operational messages; never raw CLI payload or credentials.
+        joined=(p.stdout+" "+p.stderr).lower()
+        category=("permission" if "permission" in joined or "denied" in joined else
+                  "resource_or_quota" if "quota" in joined or "limit" in joined else
+                  "conflict" if "already" in joined or "exist" in joined else
+                  "metadata" if "metadata" in joined or "invalid" in joined else
+                  "unclassified")
+        print("KAGGLE_PUSH_DIAGNOSTIC",{
+            "exit_code":p.returncode,"response_chars":len(joined),
+            "category":category,
+            "mentions_success":"success" in joined,
+            "mentions_url":"kaggle.com/code/" in joined,
+            "mentions_kernel_slug":KERNEL in joined},flush=True)
         if p.returncode:
-            raise RuntimeError("Private Kaggle CPU audit submission failed: exit "+str(p.returncode))
+            raise RuntimeError("Private Kaggle CPU audit submission failed: exit "+
+                               str(p.returncode)+" category="+category)
     print("CPU_ONLY_AUDIT_SUBMITTED",KERNEL)
     status=run("kernels","status",KERNEL)
     if status.returncode==0:
