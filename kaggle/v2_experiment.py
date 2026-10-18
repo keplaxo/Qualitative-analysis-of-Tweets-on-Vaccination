@@ -63,6 +63,13 @@ subprocess.run(["git","clone","--depth","1","--branch",
  str(repo)],check=True,capture_output=True,text=True)
 pip("-m","pip","install","-q","-e",str(repo))
 pip("-m","pip","install","-q","-r",str(repo/"requirements.txt"))
+# The Kaggle script interpreter has already started before editable pip
+# installation. Newly written .pth metadata is not processed until a new
+# interpreter starts. Put the checked-out src tree on THIS process's path.
+src_dir=repo/"src"
+if not (src_dir/"vaxbench"/"v2_selection.py").is_file():
+    raise RuntimeError("Checked-out v2 package source is missing")
+sys.path.insert(0,str(src_dir))
 from vaxbench.v2_selection import select_v2_cases
 from vaxbench.core import text_digest
 selected=select_v2_cases(pred_nli,pred_v1)
