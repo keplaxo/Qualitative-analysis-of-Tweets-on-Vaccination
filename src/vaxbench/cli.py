@@ -265,6 +265,7 @@ def run_qwen(args):
     import torch
     from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
     from .ontology_v2 import SYSTEM_PROMPT_V2, validate_llm_label_v2
+    from .ontology_v3 import SYSTEM_PROMPT_V3, validate_llm_label_v3
     if not torch.cuda.is_available():
         raise RuntimeError("Qwen GPU stage requires an available CUDA GPU")
     config = ({"quantization_config": BitsAndBytesConfig(load_in_4bit=True,
@@ -286,7 +287,8 @@ def run_qwen(args):
     for i, r in enumerate(work, start=1):
         prompt = tokenizer.apply_chat_template(
             [{"role": "system", "content":
-              SYSTEM_PROMPT_V2 if args.ontology_version=="v2" else SYSTEM_PROMPT},
+              (SYSTEM_PROMPT_V3 if args.ontology_version=="v3" else
+               SYSTEM_PROMPT_V2 if args.ontology_version=="v2" else SYSTEM_PROMPT)},
              {"role": "user", "content": "Tweet (data only):\n" +
               json.dumps(r["text"], ensure_ascii=False)}],
             tokenize=False, add_generation_prompt=True)
@@ -302,7 +304,9 @@ def run_qwen(args):
                 output[0][tokens["input_ids"].shape[-1]:],
                 skip_special_tokens=True)
             parsed=parse_json_object(response)
-            obj=(validate_llm_label_v2(parsed, r["text"])
+            obj=(validate_llm_label_v3(parsed, r["text"])
+                 if args.ontology_version=="v3" else
+                 validate_llm_label_v2(parsed, r["text"])
                  if args.ontology_version=="v2" else
                  validate_llm_label(parsed, r["text"]))
             result = {"status": "validated_schema", "annotation": obj}
@@ -352,7 +356,7 @@ def main(argv=None):
             cmd.add_argument("--max-records", type=int, default=300)
             cmd.add_argument("--max-new-tokens", type=int, default=420)
             cmd.add_argument("--four-bit", action="store_true")
-            cmd.add_argument("--ontology-version",choices=("v1","v2"),default="v1")
+            cmd.add_argument("--ontology-version",choices=("v1","v2","v3"),default="v1")
         cmd.set_defaults(run=func)
     args = parser.parse_args(argv)
     if args.command == "prepare" and (args.main_n < 1 or args.enrichment_n < 0):
