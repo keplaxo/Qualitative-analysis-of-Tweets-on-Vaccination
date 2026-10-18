@@ -4,21 +4,20 @@ Reproducible research pipeline for model-assisted analysis of historical vaccina
 
 **Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
-## Verified progress — 17 October 2026
+## Verified progress — 18 October 2026
 
 | Component | Verified status |
 | --- | --- |
-| Research code and synthetic unit tests | Implemented; latest branch CI succeeded |
-| Kaggle API / hosted data connection | Authenticated GitHub Actions integration; dataset found and attached |
-| Private dataset schema probe | **Complete**; master.csv and vaccination2.csv readable |
-| 100-tweet GPU smoke benchmark | **Complete**; aggregate summary retrieved |
-| 2,000-tweet GPU benchmark | **Resubmitted** at 15:54 UTC after a canceled run; initially **QUEUED**; latest completion/result unverified |
-| Qwen semantic adjudication | Implemented as an optional, capped stage; **disabled** for smoke and 2,000-tweet runs |
-| Independent in-domain accuracy / complete-corpus inference | **Not performed** |
+| Private Kaggle dataset and schema preflight | **Complete**, both source CSVs readable |
+| 100-record GPU smoke and 2,000-record base benchmark | **Complete**, preserved Kaggle summaries |
+| Sentiment (XLM-T, Twitter-RoBERTa) and zero-shot DeBERTa stance | **Complete** for eligible development records |
+| Qwen3 pilot (20) and targeted review (300) | **Complete**; 290/300 structurally valid outputs |
+| Private CPU-only DeBERTa–Qwen disagreement audit | **Complete**, all 300 record hashes verified |
+| Aggregate Qwen stance agreement | **31/290 (10.7%)**, agreement **not** model accuracy |
+| Key diagnosis | Disagreement concentrated in `insufficient_context` versus `uncertain`, amplified by purposive uncertain-case enrichment |
+| Full-corpus stance inference and population-level conclusions | **Held** pending ontology clarification and independent benchmark validation |
 
-The completed 100-record smoke run produced 100 multilingual sentiment predictions, 85 English sentiment predictions, and 85 exploratory zero-shot stance predictions. The two sentiment models agreed on **56 of 85** overlapping records (65.9% agreement, **not accuracy**). No independent human-reference labels were generated or approved as part of this workflow, by design; model agreement is not a substitute for task-specific validity evidence.
-
-The previous smoke error involved rounded/scientific-notation source IDs creating duplicate prediction keys. Canonical inference keys now use exact-text SHA-256 digests. The successful smoke run passed the subsequent summary gate. The initial 2,000-record notebook was canceled without a verified summary, and the retry was only confirmed queued in the last available submission log. See [workflow and execution status](docs/WORKFLOW.md) for the dated audit trail and next decision gates.
+See [the verified disagreement audit](docs/STANCE_DISAGREEMENT_AUDIT.md), including a full label cross-tab, methodologic limitations, diagnostic subgroup results, and a controlled v2 evaluation plan. The audit used saved private outputs without rerunning either model or copying tweet texts into GitHub.
 
 ## Repository guide
 
