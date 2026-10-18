@@ -1,0 +1,43 @@
+name: Audit DeBERTa Qwen Stance Disagreement
+
+on:
+  push:
+    branches: [master]
+    paths: [".github/workflows/vax-stance-audit.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vax-private-stance-disagreement-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout research feature implementation
+        uses: actions/checkout@v4
+        with:
+          ref: feature/kaggle-model-benchmark-v1
+          persist-credentials: false
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Kaggle API client
+        run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Submit one private CPU-only aggregate audit
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/submit_stance_audit.py
+      - name: Check CPU audit and retrieve aggregated diagnosis
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/collect_stance_audit.py
