@@ -2,7 +2,8 @@
 import os,re,subprocess,sys,csv,io,json,tempfile,pathlib
 REFS=("keplaxo/vax-schema-probe-20261017",
       "keplaxo/vax-sentiment-benchmark-smoke",
-      "keplaxo/vax-sentiment-benchmark-full")
+      "keplaxo/vax-sentiment-benchmark-full",
+      "keplaxo/vax-stance-disagreement-audit")
 PAT=re.compile(r"Traceback|Exception|Error|No module named|No such file|not found|"
                r"ModuleNotFound|ImportError|OSError|RuntimeError|ValueError|"
                r"FileNotFound|SyntaxError|KeyError|AssertionError|"
