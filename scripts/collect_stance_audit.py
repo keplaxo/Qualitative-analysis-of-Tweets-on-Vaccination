@@ -1,6 +1,6 @@
 """Poll private Kaggle CPU diagnostic and print only aggregate-safe JSON."""
 import json,os,pathlib,re,subprocess,sys,tempfile,time
-KERNEL="keplaxo/vax-stance-audit-20261018-v1"
+KERNEL="keplaxo/vaccination-stance-disagreement-audit"
 def cli(*args,timeout=150):
     return subprocess.run(["kaggle",*args],capture_output=True,text=True,timeout=timeout)
 
