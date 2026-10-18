@@ -52,3 +52,22 @@ When errors occur, check Kaggle kernel state and sanitized diagnostics first. Co
 ## 6. Security and research boundaries
 
 Only approved public code, documentation, and synthetic tests belong in GitHub. Keep Kaggle secrets in GitHub Actions secrets; never paste keys into notebooks or log them. Keep raw tweet texts, IDs, source archives, licensed evaluation data, and per-record prediction artifacts private. Preserve pre-existing historical analyses rather than overwriting them. Sentiment is not stance; opposition to a mandate, receipt of vaccination, reporting adverse events, and endorsement of a quoted statement must not be automatically conflated.
+
+## 7. Automatically scheduled Qwen and research-report stages (18 October 2026)
+
+The year-balanced 2,000-tweet benchmark has now been independently confirmed **COMPLETE** using an authenticated status check of Kaggle outputs, with 2,000 multilingual predictions and 1,666 English-only sentiment and zero-shot stance predictions. The model-pair sentiment agreement is 1,340/1,666 (80.4%); this is not accuracy. The public repository stores no original tweets or per-record inference outputs.
+
+A separate **hourly** GitHub Actions scheduler now lives on the **default master branch** at [vax-kaggle-scheduler.yml](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/.github/workflows/vax-kaggle-scheduler.yml). It checks out this feature branch and runs [advance_kaggle.py](../scripts/advance_kaggle.py), whose enable switch is [pipeline-enable.marker](../kaggle/pipeline-enable.marker). This master-branch schedule is actually active; do not confuse it with the feature-only schedule that could not run before the workflows were merged.
+
+The staged dependency graph is strictly:
+
+1. **Pilot** — private GPU notebook [vax-qwen-pilot](https://www.kaggle.com/code/keplaxo/vax-qwen-pilot), 20 records from a deterministic 300-record triage, with 60% low-confidence/abstained DeBERTa prioritization and 40% hash-ranked comparison.
+2. **Capped semantic classification** — private GPU notebook [vax-qwen-300](https://www.kaggle.com/code/keplaxo/vax-qwen-300), only after the pilot COMPLETES with 20 results, at least 14 structurally valid outputs and matching triage provenance. Reuses the 20 completed pilot classifications to avoid redundant Qwen inference.
+3. **Aggregate report** — private **CPU** notebook [vax-semantic-research-report](https://www.kaggle.com/code/keplaxo/vax-semantic-research-report), only after the 300-case stage COMPLETES with 300 distinct records and at least 210 structurally valid outputs. It generates \`research_report.json\` and \`research_report.md\` with year-/triage-stratified description, author-stance model agreement and semantically distinct concern flags.
+4. **Post-report research decision** — no automatic full-historical-corpus inference, human gold-label creation, or validity/accuracy assertion. Model-assisted corpus expansion requires explicit budget, reproducibility, representativeness and task-matched validation review.
+
+Pilot and 300-case stages use the **private output of the completed Kaggle notebook** as \`kernel_sources\`, not a second full-data read or a GitHub data export. Thus the original 2,000 cases are not reclassified with the three baseline models. Inferred labels are not independently verified ground truth, and a valid JSON schema/evidence substring does not establish semantic correctness.
+
+The scheduler is idempotent and starts at most **one** missing stage per hourly poll. Existing QUEUED/RUNNING/CANCELED/ERROR notebooks are never automatically restarted. An unrecognized state or missing/mismatched upstream report fails closed. The 70% Qwen structural-validity threshold is an **operational parseability guard, not an accuracy target**. GPU runtime quotas, Kaggle queues and model compatibility can still block progression.
+
+The master-branch scheduler's initial run [39081406763](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39081406763) successfully submitted the 20-case Qwen pilot. Submission does not establish Kaggle completion.
