@@ -6,7 +6,7 @@ TASKS={
   "schema_probe":{"ref":"keplaxo/vax-schema-probe-20261017","report":"schema_probe.json"},
   "benchmark_smoke":{"ref":"keplaxo/vax-sentiment-benchmark-smoke","report":"summary.json"},
   "benchmark_full":{"ref":"keplaxo/vax-sentiment-benchmark-full","report":"summary.json"},
-  "stance_audit":{"ref":"keplaxo/vax-stance-audit-20261018-v1","report":"stance_disagreement_audit.json"},
+  "stance_audit":{"ref":"keplaxo/vaccination-stance-disagreement-audit","report":"stance_disagreement_audit.json"},
 }
 
 def command(*args,timeout=90):
