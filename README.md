@@ -4,6 +4,16 @@ Reproducible research pipeline for model-assisted analysis of historical vaccina
 
 **Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
+## Active ontology v2 evaluation — 18 October 2026
+
+- **Controlled Qwen3 v2 pilot submitted:** 12 deterministic, interleaved examples from the saved 300-case private comparison. Completion has **not** been confirmed; last checked Kaggle state was QUEUED.
+- **Automated next steps on GitHub:** if at least 9/12 pilot results are structurally valid, run a versioned 60-case comparison reusing those 12 results. Require at least 45/60 valid outputs. The GitHub default-branch [controlled experiment workflow](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/workflows/vax-v2-controlled.yml) checks progression hourly and never automatically retries failed/queued kernels.
+- **Public reference preflight completed:** [VaxxHesitancy V2](https://zenodo.org/records/7601328) has 431 held-out rows but only tweet IDs plus annotation fields, **not original tweet text**. It cannot directly evaluate an inference model without lawful tweet rehydration.
+- **Secondary, task-qualified, independent reference prepared:** [VACMA-PUBLIC](https://github.com/peregilk/VACMA-PUBLIC) has 200 published annotated English texts, with 43 intention-to-accept and 18 intention-to-reject examples. A separate 61-case Qwen3 v2 **intention-proxy** evaluation is scheduled after successful v2 12/60 gates. Intent labels are not exact six-class vaccination-stance ground truth.
+- **No results yet** for v2 re-inference or external intention-proxy accuracy. Original model predictions and the 290-pair disagreement audit remain intact, without any full historical corpus launch.
+
+See the [frozen experimental design and reference caveats](docs/ONTOLOGY_V2_EXPERIMENT.md). Private per-tweet data never enters public GitHub artifacts or logs.
+
 ## Verified progress — 18 October 2026
 
 | Component | Verified status |
