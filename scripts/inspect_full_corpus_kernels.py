@@ -24,6 +24,24 @@ def main():
             print("SAFE_OWNED_NOTEBOOK",public,flush=True)
             shown+=1
     print("SAFE_OWNED_NOTEBOOKS_MATCHED",shown,flush=True)
+    for ref in (
+        "keplaxo/vax-full-corpus-occurrences-20261019",
+        "keplaxo/vax-full-corpus-raw-event-weights-20261019",
+        "keplaxo/vax-full-corpus-event-weights-20261019",
+    ):
+        p=subprocess.run(["kaggle","kernels","status",ref],
+                         capture_output=True,text=True,timeout=60)
+        m=re.findall(r"KernelWorkerStatus\\.([A-Z_]+)",p.stdout)
+        print("SAFE_CANDIDATE_STATUS",ref,
+              m[-1] if m and p.returncode==0 else "NOT_ACCESSIBLE",
+              flush=True)
+    other=subprocess.run(["kaggle","kernels","list","--user","keplaxo","--csv"],
+                         capture_output=True,text=True,timeout=100)
+    if other.returncode==0:
+        reader2=csv.DictReader(io.StringIO(other.stdout))
+        matched=[str(x.get("ref","")) for x in reader2
+                 if "corpus" in str(x.get("ref","")).lower()]
+        print("SAFE_USER_CORPUS_KERNEL_REFS",matched[:30],flush=True)
 if __name__=="__main__":
     try:main()
     except Exception as e:
