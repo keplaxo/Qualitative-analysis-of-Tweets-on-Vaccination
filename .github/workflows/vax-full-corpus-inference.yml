@@ -6,7 +6,7 @@ on:
     paths: [".github/workflows/vax-full-corpus-inference.yml"]
   workflow_dispatch:
   schedule:
-    - cron: "47 * * * *"
+    - cron: "7,22,37,52 * * * *"
 
 permissions:
   contents: read
