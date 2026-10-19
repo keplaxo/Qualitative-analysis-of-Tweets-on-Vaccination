@@ -30,6 +30,20 @@ def main():
               "competition_sources":[],"model_sources":[]}
         (d/"kernel-metadata.json").write_text(json.dumps(meta))
         p=call("kernels","push","-p",str(d),"--timeout","10800",timeout=240)
+        response=(p.stdout+" "+p.stderr)
+        # This response contains submission metadata only, not source tweets.
+        # Only disclose the Kaggle kernel URL and classified API result.
+        urls=re.findall(r"https?://(?:www\\.)?kaggle\\.com/code/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+",response)
+        signals={
+            "exit_code":p.returncode,"reply_chars":len(response),
+            "kaggle_urls":urls[:3],
+            "mentions_create":"created" in response.lower(),
+            "mentions_upload":"uploaded" in response.lower(),
+            "mentions_error":"error" in response.lower(),
+            "mentions_conflict":"409" in response,
+            "mentions_permission":"permission" in response.lower()
+        }
+        print("FULL_EVENT_BACKFILL_UPLOAD_SIGNAL",json.dumps(signals),flush=True)
         if p.returncode:raise RuntimeError("Private event backfill rejected")
     print("FULL_EVENT_BACKFILL_SUBMITTED",REF,"gpu=False",flush=True)
 if __name__=="__main__":
