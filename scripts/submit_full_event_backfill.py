@@ -1,6 +1,6 @@
 """Submit private CPU raw-event frequency backfill, idempotent."""
 import json,os,pathlib,re,subprocess,sys,tempfile
-REF="keplaxo/vax-full-corpus-occurrences-20261019"
+REF="keplaxo/vax-corpus-event-join-20261019-v2"
 def call(*a,timeout=110):
     return subprocess.run(["kaggle",*a],capture_output=True,text=True,timeout=timeout)
 def main():
@@ -22,7 +22,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         d=pathlib.Path(tmp);f="full_corpus_occurrence_backfill.py"
         (d/f).write_text(script,encoding="utf-8")
-        meta={"id":REF,"title":"Vax Full Corpus Raw Event Weights 20261019",
+        meta={"id":REF,"title":"Vax Corpus Event Join 20261019 V2",
               "code_file":f,"language":"python","kernel_type":"script",
               "is_private":True,"enable_gpu":False,"enable_internet":False,
               "dataset_sources":["keplaxo/twitter-vaccination-dataset"],
