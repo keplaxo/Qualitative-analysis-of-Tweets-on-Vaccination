@@ -75,6 +75,16 @@ run("-m","pip","install","-q","-r",str(repo/"requirements.txt"))
 revision=subprocess.run(["git","rev-parse","HEAD"],cwd=repo,
                         capture_output=True,text=True,check=True).stdout.strip()
 runtime={}
+if MODE!="stance":
+    t=time.perf_counter()
+    run("-m","vaxbench.langscreen","--input",input_csv,
+        "--output",screened)
+    runtime["language_screen_seconds"]=round(time.perf_counter()-t,3)
+eligible=pd.read_csv(screened,dtype=str,keep_default_na=False)
+if len(eligible)!=len(frame):
+    raise RuntimeError("Language screening coverage mismatch")
+english=eligible["language_screen"].str.lower().isin(("en","eng","english"))
+english_n=int(english.sum())
 if MODE!="pilot" and SHARD_INDEX==0:
     # Recover capacity-probe predictions on a 1,000-record deterministic
     # subset. This avoids duplicating expensive predictions in shard zero.
@@ -93,16 +103,7 @@ if MODE!="pilot" and SHARD_INDEX==0:
         shutil.copyfile(old,OUT/file)
     print("REUSED_CAPACITY_PROBE_PREDICTIONS",MODE,
           "shard=0",flush=True)
-if MODE!="stance":
-    t=time.perf_counter()
-    run("-m","vaxbench.langscreen","--input",input_csv,
-        "--output",screened)
-    runtime["language_screen_seconds"]=round(time.perf_counter()-t,3)
-eligible=pd.read_csv(screened,dtype=str,keep_default_na=False)
-if len(eligible)!=len(frame):
-    raise RuntimeError("Language screening coverage mismatch")
-english=eligible["language_screen"].str.lower().isin(("en","eng","english"))
-english_n=int(english.sum())
+
 if MODE in ("pilot","sentiment"):
     t=time.perf_counter()
     run("-m","vaxbench.cli","sentiment","--model","multilingual",
