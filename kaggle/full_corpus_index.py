@@ -72,8 +72,10 @@ def main():
                                    "; user review required")
             record_source=name[:-4]
             src=collections.Counter()
+            usecols=[text_col]+([date_col] if date_col and date_col!=text_col else [])
             for chunk in pd.read_csv(
                 path,dtype=str,keep_default_na=False,encoding="utf-8-sig",
+                usecols=usecols,
                 chunksize=READ_CHUNK,low_memory=False,on_bad_lines="error"
             ):
                 src["raw_rows"]+=len(chunk)
