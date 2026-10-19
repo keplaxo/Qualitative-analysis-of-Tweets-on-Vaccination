@@ -16,7 +16,6 @@ SHARDS=64
 READ_CHUNK=16000
 OUT=Path("/kaggle/working/vax_outputs")
 B=OUT/"corpus_shards"
-B.mkdir(parents=True,exist_ok=True)
 TEXT_NAMES=("text","tweet","tweet_text","full_text","content","original_text",
             "tweet content","message","fulltext")
 DATE_NAMES=("date","created_at","datetime","created","timestamp","tweet_date",
@@ -47,6 +46,7 @@ def sanitized_years(values):
     return [int(y) if 2000<=int(y)<=2026 else 0 for y in years]
 
 def main():
+    B.mkdir(parents=True,exist_ok=True)
     seen=set()
     stats=collections.Counter()
     yearly=collections.Counter()
