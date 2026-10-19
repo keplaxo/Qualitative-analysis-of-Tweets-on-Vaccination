@@ -117,7 +117,7 @@ def submit(mode,index):
             category="quota" if "quota" in detail else "conflict" if "409" in detail else "other"
             raise RuntimeError("Kaggle corpus GPU stage rejected: "+category)
     print("FULL_CORPUS_GPU_SUBMITTED",mode,index,ref,flush=True)
-EVENTS="keplaxo/vax-full-corpus-occurrences-20261019"
+EVENTS="keplaxo/vax-corpus-event-join-20261019-v2"
 FINAL_REF="keplaxo/vax-full-corpus-research-report-20261019"
 WAVES=16
 
