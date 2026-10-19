@@ -4,6 +4,14 @@ Reproducible research pipeline for model-assisted analysis of historical vaccina
 
 **Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
+## Full-corpus processing — 19 October 2026
+
+**Full dataset ingestion completed** for both private Kaggle source CSVs: 2,285,081 original tweet rows, 1,944,361 distinct exact tweet texts, and 340,720 duplicate-text occurrences. Unique texts are partitioned into 64 private deterministic SHA-256 shards. The historical 2,000-record development benchmark and the original Qwen v1–v3 outputs remain preserved separately.
+
+The [GPU capacity probe](https://www.kaggle.com/code/keplaxo/vax-corpus-capacity-20261019) was submitted and verified running. The [new hourly Kaggle scheduler](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/workflows/vax-full-corpus-inference.yml) is configured to process all unique texts with XLM-R sentiment, eligible English texts with Twitter-RoBERTa sentiment and an *exploratory, unvalidated* DeBERTa six-label stance classifier. It will run in separate model/shard jobs, not one notebook with a multi-million-row sample. The CPU event-weight reconstruction was also submitted to preserve original source tweet counts by year and source.
+
+**Current state: full-corpus GPU inference is gated on a completed capacity probe; 64 sentiment plus 64 exploratory stance shard jobs are not yet complete.** No Qwen mass inference, paid GPU resources or claims of independently validated stance prevalence are authorized. Stance classifier disagreement and poor intention-proxy results must remain prominent study limitations. For the implementation and operational risks, see [full-corpus workflow documentation](docs/FULL_CORPUS_PIPELINE.md).
+
 ## Updated research status — 18 October 2026
 
 The original private 2,000-tweet benchmark, 300-tweet Qwen v1 review, 290-pair disagreement audit, 12-tweet Qwen v2 pilot, 60-tweet Qwen v2 comparison and 61-case published VACMA intention-proxy evaluation are **COMPLETE**. The v2 study produced 57/60 structurally valid outputs; 27 originally `uncertain` labels became `no_expressed_stance`. The published intention-proxy study found strict 12/61 (19.7%) alignment, macro-F1 0.337 and binary model coverage 18/61 (29.5%). These scores concern **COVID-era intention-proxy outcomes**, not original historical six-class stance accuracy.
