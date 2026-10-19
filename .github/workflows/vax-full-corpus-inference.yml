@@ -1,0 +1,36 @@
+name: Vaccination Full Corpus Gated Inference
+
+on:
+  push:
+    branches: [master]
+    paths: [".github/workflows/vax-full-corpus-inference.yml"]
+  workflow_dispatch:
+  schedule:
+    - cron: "47 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vax-full-corpus-private-inference-20261019
+  cancel-in-progress: false
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/kaggle-model-benchmark-v1
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Verify indexed corpus and submit at most one bounded GPU stage
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/advance_full_corpus.py
