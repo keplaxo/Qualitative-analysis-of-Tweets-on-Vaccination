@@ -13,7 +13,7 @@ import pandas as pd
 
 OUT=Path("/kaggle/working/vax_outputs");OUT.mkdir(parents=True,exist_ok=True)
 SHARDS=range(WAVE_INDEX*4,(WAVE_INDEX+1)*4)
-EVENTS="vax-full-corpus-occurrences-20261019"
+EVENTS="vax-corpus-event-join-20261019-v2"
 def file(name,slug):
     matches=[p for p in Path("/kaggle/input").rglob(name)
              if slug in str(p).lower()]
