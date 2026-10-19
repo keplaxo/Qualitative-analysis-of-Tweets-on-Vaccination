@@ -12,7 +12,7 @@ Deduplication reduces inference cost; it does not redefine the original source-e
 
 Private CPU source index → 1,000-text GPU capacity pilot → 64 private sentiment shard kernels → 64 private exploratory stance shard kernels → validated descriptive aggregation.
 
-The [private corpus index](https://www.kaggle.com/code/keplaxo/vax-full-corpus-index-20261019) is COMPLETE. The [GPU capacity pilot](https://www.kaggle.com/code/keplaxo/vax-corpus-capacity-20261019) was submitted and confirmed RUNNING. [GitHub Actions scheduler](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/workflows/vax-full-corpus-inference.yml) advances at most one new private GPU kernel per hourly check, if all prior output quality gates pass.
+The [private corpus index](https://www.kaggle.com/code/keplaxo/vax-full-corpus-index-20261019) is COMPLETE. The [GPU capacity pilot](https://www.kaggle.com/code/keplaxo/vax-corpus-capacity-20261019) is COMPLETE with full coverage. The first [sentiment shard](https://www.kaggle.com/code/keplaxo/vax-corpus-sentiment-00-20261019) was submitted after the pilot passed. [GitHub Actions scheduler](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/workflows/vax-full-corpus-inference.yml) advances at most one new private GPU kernel per hourly check, if all prior output quality gates pass.
 
 All unique texts receive the established CardiffNLP Twitter XLM-R sentiment model. English-screened texts also receive CardiffNLP Twitter RoBERTa sentiment and exploratory DeBERTa-v3-large six-category zero-shot vaccine stance. Qwen v1/v2/v3 are not being run on 1.94 million texts: their original disagreement and external intention-proxy results do not support broad deployment.
 
@@ -32,6 +32,6 @@ Always distinguish source-event denominators from unique-text denominators, incl
 2. CPU original-event weights: submitted, completion still to be checked.
 3. GPU capacity and throughput: submitted and verified running, results pending.
 4. All 64 sentiment and 64 stance shards: scheduled conditionally after capacity gating; none should be claimed complete until verified.
-5. Final descriptive reports: depend on complete coverage and successful independent shard-output joins, not on model/model agreement as accuracy.
+5. Private CPU research reporting is now implemented: 16 four-shard waves, each joining completed sentiment/stance predictions to original source-event weights, and one final synthesis that checks all 64 shards and year/source denominators. It is gated on all required inputs and is **not yet executed**. Resulting label shares are predictions, not independently validated vaccine-hesitancy prevalence.
 
 Previously completed 2,000-tweet and Qwen v1–v3 experimental outputs remain intact. No full-corpus research conclusions have been produced yet.
