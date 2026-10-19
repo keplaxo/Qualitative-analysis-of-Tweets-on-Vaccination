@@ -56,3 +56,23 @@ def test_gpu_script_injection_and_import_syntax():
         ast.parse(compiled)
         assert "accuracy_measured" in compiled
         assert "stance_validated" in compiled
+
+
+def test_cpu_reporting_scripts_parse_and_wave_injection():
+    import ast
+    wave=(ROOT/"kaggle/full_corpus_aggregate_wave.py").read_text()
+    final=(ROOT/"kaggle/full_corpus_aggregate_final.py").read_text()
+    assert wave.count("WAVE_INDEX=WAVE_PLACEHOLDER")==1
+    for i in (0,7,15):
+        ast.parse(wave.replace("WAVE_INDEX=WAVE_PLACEHOLDER",
+                               "WAVE_INDEX="+str(i)))
+    ast.parse(final)
+    assert "accuracy_measured" in final
+    assert "stance_prevalence_validated" in final
+
+def test_final_controller_wave_stage_identifiers_and_size():
+    controller=load("scripts/advance_full_corpus.py","corpus_aggregate_contract")
+    assert controller.wave_ref(0)=="keplaxo/vax-corpus-report-wave-00-20261019"
+    assert controller.wave_ref(15)=="keplaxo/vax-corpus-report-wave-15-20261019"
+    assert controller.WAVES==16
+    assert controller.COUNT==64
