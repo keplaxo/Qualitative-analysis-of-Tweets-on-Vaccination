@@ -117,6 +117,106 @@ def submit(mode,index):
             category="quota" if "quota" in detail else "conflict" if "409" in detail else "other"
             raise RuntimeError("Kaggle corpus GPU stage rejected: "+category)
     print("FULL_CORPUS_GPU_SUBMITTED",mode,index,ref,flush=True)
+EVENTS="keplaxo/vax-full-corpus-occurrences-20261019"
+FINAL_REF="keplaxo/vax-full-corpus-research-report-20261019"
+WAVES=16
+
+def wave_ref(index):
+    return "keplaxo/vax-corpus-report-wave-%02d-"%index+SLUG
+
+def event_weights_ok(m):
+    r=read_summary(EVENTS,"full_corpus_occurrence_manifest.json")
+    if (r.get("unique_texts")!=m["unique_texts"] or
+        r.get("total_nonempty_events")!=m["raw_rows_total"]-m["blank_rows"] or
+        r.get("exact_sha256_text_join") is not True or
+        r.get("future_aggregation_can_report_event_weighted_counts") is not True):
+        raise RuntimeError("Raw event backfill coverage incomplete")
+    return r
+
+def wave_ok(index):
+    r=read_summary(wave_ref(index),"corpus_report_wave.json")
+    if (r.get("wave")!=index or
+        r.get("shards")!=list(range(index*4,(index+1)*4)) or
+        r.get("entire_wave_hash_coverage_verified") is not True or
+        r.get("tweet_content_or_hashes_exported") is not False or
+        r.get("stance_unvalidated") is not True):
+        raise RuntimeError("Corrupt or missing private corpus aggregation wave")
+    return r
+
+def submit_aggregation(which,index=0):
+    if which=="wave":
+        name=wave_ref(index)
+        title="Vax Corpus Report Wave %02d 20261019"%index
+        path="kaggle/full_corpus_aggregate_wave.py"
+        script=pathlib.Path(path).read_text(encoding="utf-8")
+        needle="WAVE_INDEX=WAVE_PLACEHOLDER"
+        if script.count(needle)!=1:raise RuntimeError("Wave parameter not injectible")
+        script=script.replace(needle,"WAVE_INDEX="+str(index))
+        sources=[EVENTS]
+        for i in range(index*4,(index+1)*4):
+            sources += [make_ref("sentiment",i),make_ref("stance",i)]
+    elif which=="final":
+        name=FINAL_REF
+        title="Vax Full Corpus Research Report 20261019"
+        path="kaggle/full_corpus_aggregate_final.py"
+        script=pathlib.Path(path).read_text(encoding="utf-8")
+        sources=[INDEX,EVENTS]+[wave_ref(i) for i in range(WAVES)]
+    else:raise RuntimeError("Unknown aggregation job")
+    owned=command("kernels","list","--mine","--csv")
+    if owned.returncode or name.lower() in owned.stdout.lower():
+        raise RuntimeError("Ambiguous/registered aggregation kernel; no duplicate")
+    with tempfile.TemporaryDirectory() as tmp:
+        d=pathlib.Path(tmp);filename=pathlib.Path(path).name
+        (d/filename).write_text(script,encoding="utf-8")
+        meta={"id":name,"title":title,"code_file":filename,
+              "language":"python","kernel_type":"script","is_private":True,
+              "enable_gpu":False,"enable_internet":False,"dataset_sources":[],
+              "kernel_sources":sources,"competition_sources":[],"model_sources":[]}
+        (d/"kernel-metadata.json").write_text(json.dumps(meta),encoding="utf-8")
+        result=command("kernels","push","-p",str(d),"--timeout","5400",timeout=240)
+        if result.returncode:
+            response=(result.stdout+" "+result.stderr).lower()
+            reason="quota" if "quota" in response else "conflict" if "409" in response else "other"
+            raise RuntimeError("Private corpus aggregate rejected "+reason)
+    print("FULL_CORPUS_AGGREGATE_SUBMITTED",which,index,name,flush=True)
+
+def finish_aggregation(m):
+    st=state(EVENTS)
+    if st!="COMPLETE":
+        print("FULL_CORPUS_WAIT_EVENT_BACKFILL" if st in ("RUNNING","QUEUED","PENDING","STARTING")
+              else "FULL_CORPUS_BLOCKED_EVENT_BACKFILL",st,flush=True)
+        return
+    event_weights_ok(m)
+    for i in range(WAVES):
+        st=state(wave_ref(i))
+        if st=="COMPLETE":
+            wave_ok(i)
+            continue
+        if st=="NOT_AVAILABLE":submit_aggregation("wave",i)
+        elif st in ("RUNNING","QUEUED","PENDING","STARTING"):
+            print("FULL_CORPUS_WAIT_AGGREGATE",i,st,flush=True)
+        else:print("FULL_CORPUS_BLOCKED_AGGREGATE",i,st,flush=True)
+        return
+    state_final=state(FINAL_REF)
+    if state_final=="COMPLETE":
+        r=read_summary(FINAL_REF,"full_corpus_research_report.json")
+        if (r.get("n_sha256_unique_texts")!=m["unique_texts"] or
+            r.get("n_original_source_rows")!=m["raw_rows_total"] or
+            r.get("shards_covered")!=64 or
+            r.get("accuracy_measured") is not False or
+            r.get("stance_prevalence_validated") is not False):
+            raise RuntimeError("Final full corpus research report failed validity checks")
+        print("FULL_CORPUS_RESEARCH_FINISHED",json.dumps({
+            "raw_rows":r["n_original_source_rows"],
+            "unique_texts":r["n_sha256_unique_texts"],
+            "sentiment_shards":64,"stance_shards":64,
+            "accuracy_established":False
+        }),flush=True)
+    elif state_final=="NOT_AVAILABLE":submit_aggregation("final")
+    elif state_final in ("RUNNING","QUEUED","STARTING","PENDING"):
+        print("FULL_CORPUS_WAIT_FINAL_REPORT",state_final,flush=True)
+    else:print("FULL_CORPUS_BLOCKED_FINAL_REPORT",state_final,flush=True)
+
 def main():
     if not (os.getenv("KAGGLE_API_TOKEN") or
             (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))):
@@ -175,6 +275,7 @@ def main():
         "stance_accuracy_not_established":True,
         "raw_event_prevalence_not_established":True
     }),flush=True)
+    finish_aggregation(m)
 if __name__=="__main__":
     try:main()
     except Exception as exc:
