@@ -55,6 +55,7 @@ def main():
     files=[]
     with ExitStack() as stack:
         writers=[]
+        occurrences=[]
         for i in range(SHARDS):
             fn=B/("shard_%02d.csv.gz"%i)
             f=stack.enter_context(gzip.open(fn,"wt",encoding="utf-8",
@@ -62,6 +63,12 @@ def main():
             writer=csv.writer(f)
             writer.writerow(COLUMNS)
             writers.append(writer)
+            wf=stack.enter_context(gzip.open(B/("occurrence_%02d.csv.gz"%i),
+                                             "wt",encoding="utf-8",
+                                             newline="",compresslevel=4))
+            occurrence_writer=csv.writer(wf)
+            occurrence_writer.writerow(("record_key","year","source"))
+            occurrences.append(occurrence_writer)
         for name in FILE_NAMES:
             path=source_csv(name)
             headers=list(pd.read_csv(path,nrows=0,encoding="utf-8-sig").columns)
@@ -87,12 +94,13 @@ def main():
                         src["empty_text"]+=1
                         continue
                     h=hashlib.sha256(tweet.encode("utf-8")).digest()
+                    bucket=h[0]>>2 # first six digest bits -> 64 shards
+                    digest=h.hex()
+                    occurrences[bucket].writerow((digest,yr,record_source))
                     if h in seen:
                         src["duplicate_text"]+=1
                         continue
                     seen.add(h)
-                    bucket=h[0]>>2 # first six digest bits -> 64 shards
-                    digest=h.hex()
                     writers[bucket].writerow((digest,digest,tweet,yr,
                                               record_source,"not_screened"))
                     src["unique_texts"]+=1
@@ -131,7 +139,10 @@ def main():
        "blank_rows":int(stats["empty_text"]),
        "duplicate_text_rows":int(stats["duplicate_text"]),
        "sha256_exact_text_dedup":True,
-       "raw_duplicate_multiplicity_preserved":False,
+       "raw_duplicate_multiplicity_preserved":True,
+       "occurrence_shard_count":SHARDS,
+       "occurrence_shard_format":"occurrence_XX.csv.gz with record_key,year,source for every nonblank source row",
+       "nonempty_event_rows":int(stats["raw_rows"]-stats["empty_text"]),
        "source_order":list(FILE_NAMES),
        "shard_count":SHARDS,
        "shard_key":"top six bits of SHA256 exact UTF-8 tweet text",
