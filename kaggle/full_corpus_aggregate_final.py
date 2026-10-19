@@ -16,7 +16,7 @@ def one(filename,slug):
     if len(found)!=1:raise RuntimeError("Missing/ambiguous reporting dependency "+slug)
     return json.loads(found[0].read_text(encoding="utf-8"))
 index=one("full_corpus_manifest.json","vax-full-corpus-index-20261019")
-events=one("full_corpus_occurrence_manifest.json","vax-full-corpus-occurrences-20261019")
+events=one("full_corpus_occurrence_manifest.json","vax-corpus-event-join-20261019-v2")
 if (index.get("shard_count")!=64 or
     index.get("unique_texts")!=events.get("unique_texts") or
     index.get("raw_rows_total")-index.get("blank_rows")!=
