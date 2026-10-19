@@ -1,0 +1,170 @@
+"""Diagnose Kaggle notebook errors without dumping tweet rows into public CI logs."""
+import os,re,subprocess,sys,csv,io,json,tempfile,pathlib
+REFS=("keplaxo/vax-schema-probe-20261017",
+      "keplaxo/vax-sentiment-benchmark-smoke",
+      "keplaxo/vax-sentiment-benchmark-full",
+      "keplaxo/vax-stance-disagreement-audit",
+      "keplaxo/vax-stance-v2-pilot-20261018")
+PAT=re.compile(r"Traceback|Exception|Error|No module named|No such file|not found|"
+               r"ModuleNotFound|ImportError|OSError|RuntimeError|ValueError|"
+               r"FileNotFound|SyntaxError|KeyError|AssertionError|"
+               r"^\\s*File |Failed to|error:|out of memory|Cannot find column",re.I)
+def main():
+    if not os.environ.get("KAGGLE_API_TOKEN"):
+        raise RuntimeError("KAGGLE_API_TOKEN secret unavailable")
+    p=subprocess.run(["kaggle","kernels","list","--mine","--csv"],
+         capture_output=True,text=True,timeout=60)
+    if p.returncode==0:
+        for line in p.stdout.splitlines():
+            if re.search(r"vax|vaccinat|schema",line,re.I):
+                print("OWNED_KERNEL: "+line[:400])
+    for ref in REFS:
+        print("NOTEBOOK: "+ref)
+        p=subprocess.run(["kaggle","kernels","status",ref],
+                         capture_output=True,text=True,timeout=60)
+        if p.returncode==0:
+            state=re.search(r"KernelWorkerStatus\.([A-Z_]+)",p.stdout)
+            print("STATE: "+(state.group(1) if state else "unknown"))
+        else:
+            print("STATE: not_available")
+        p=subprocess.run(["kaggle","kernels","logs",ref],
+                         capture_output=True,text=True,timeout=90)
+        if p.returncode:
+            print("LOGS: unavailable (exit "+str(p.returncode)+")")
+            print("DIAGNOSTIC: "+(p.stderr or p.stdout).strip()[:280])
+            continue
+        if ref.endswith("v2-pilot-20261018"):
+            # Strictly metadata/traceback type only: never print a source tweet,
+            # model-generated response, prompt, row hash, or secret.
+            try:
+                events=json.loads(p.stdout)
+                messages="\n".join(str(e.get("data","")) for e in events
+                                   if isinstance(e,dict))
+                modules=sorted(set(re.findall(
+                    r"No module named ['\\\"]([a-zA-Z0-9_.-]+)['\\\"]",
+                    messages)))
+                errors=sorted(set(re.findall(
+                    r"\\b(?:ModuleNotFoundError|ImportError|SyntaxError|"
+                    r"ValueError|RuntimeError|FileNotFoundError|"
+                    r"CalledProcessError|AttributeError|AssertionError)\\b",
+                    messages)))
+                ex=sorted(set(re.findall(
+                    r"(?:RuntimeError|ValueError|ModuleNotFoundError|"
+                    r"ImportError|CalledProcessError|AttributeError|"
+                    r"AssertionError|KeyError|TypeError|OSError|"
+                    r"OutOfMemoryError|CUDAError|SystemExit)",
+                    messages)))
+                checkpoints=re.findall(r"Qwen (\\d+)/(\\d+)",messages)
+                stage_counts={
+                    name:messages.count(name)
+                    for name in ("V2_AGGREGATE","V2_SCHEMA_GATE_PASSED",
+                                 "V2_SCHEMA_GATE_BLOCKED",
+                                 "Incomplete versioned Qwen v2 checkpoint",
+                                 "V2 join and exact-text SHA-256",
+                                 "V2 pilot failed",
+                                 "Insufficient frozen records",
+                                 "Qwen 10/","Qwen 12/")}
+                paths=re.findall(
+                    r"File [\\\"]([^\\\"]*(?:v2_experiment\\.py|cli\\.py|v2_selection\\.py))"
+                    r"[\\\"], line (\\d+)",messages)
+                # Emit only approved static module basenames and line numbers.
+                paths=[(x.rsplit("/",1)[-1],int(y)) for x,y in paths]
+                print("V2_PILOT_EXECUTION_SIGNALS:",json.dumps({
+                    "exception_types":ex,"model_progress_tail":checkpoints[-4:],
+                    "stage_marker_counts":stage_counts,
+                    "project_traceback_locations":paths[-8:],
+                    "last_three_event_streams":[str(v.get("stream_name","unknown"))
+                        for v in events[-3:] if isinstance(v,dict)]}))
+                print("V2_PILOT_SAFE_DIAGNOSTIC:",json.dumps({
+                    "log_events":len(events),
+                    "module_names":modules[:12],
+                    "exception_types":errors,
+                    "reached_versioned_inference":"V2_STAGE" in messages,
+                    "reached_new_model_load":"Qwen 10/" in messages,
+                    "mentions_repo_clone":"Cloning into" in messages,
+                    "mentions_pip_failure":"subprocess.CalledProcessError" in messages,
+                    "mentions_output_gate":"V2_SCHEMA_GATE" in messages,
+                    "error_last_lines":[x[:180] for x in messages.splitlines()
+                      if re.match(r"^(?:ModuleNotFoundError|ImportError|"
+                       r"SyntaxError|AttributeError|FileNotFoundError|"
+                       r"RuntimeError|ValueError):",x.strip())][-8:]
+                }))
+            except (ValueError,TypeError):
+                print("V2_PILOT_LOG_FORMAT_NOT_JSON")
+            continue
+        if ref.endswith("-full"):
+            try:
+                events=json.loads(p.stdout)
+                raw="\n".join(str(e.get("data","")) for e in events if isinstance(e,dict))
+                marks=("GPU runtime:","Dataset mounted:","Repository revision:",
+                       "Downstream models will use the language-screened copy",
+                       "Running:","xlmt_sentiment.jsonl","roberta_english_sentiment.jsonl",
+                       "deberta_stance.jsonl","summary.json","Traceback","Error",
+                       "out of memory","quota","cancel","interrupt")
+                print("FULL_NOTEBOOK_LOG_EVENTS:",len(events))
+                print("FULL_NOTEBOOK_MILESTONES:",[v for v in marks if v.lower() in raw.lower()])
+                print("FULL_NOTEBOOK_LAST_EVENT_TIME_SECONDS:",max([float(e.get("time",0)) for e in events if isinstance(e,dict)] or [0]))
+                print("FULL_NOTEBOOK_STREAMS:",{n:sum(e.get("stream_name")==n for e in events if isinstance(e,dict)) for n in ("stdout","stderr")})
+            except (ValueError,TypeError):
+                raw=p.stdout
+                print("FULL_NOTEBOOK_LOG_RESPONSE:",{
+                    "characters":len(raw),
+                    "line_count":len(raw.splitlines()),
+                    "has_traceback":"Traceback" in raw,
+                    "has_python_exception":"Exception encountered" in raw,
+                    "has_gpu_runtime_marker":"GPU runtime:" in raw,
+                    "has_dataset_mount_marker":"Dataset mounted:" in raw,
+                    "has_repository_revision_marker":"Repository revision:" in raw,
+                    "has_language_screen_marker":"Downstream models will use" in raw,
+                    "has_model_inference_marker":"Running: " in raw,
+                    "has_summary_file_marker":"summary.json" in raw,
+                    "contains_queued_message":"queued" in raw.lower(),
+                    "contains_cancel_message":"cancel" in raw.lower(),
+                    "contains_no_logs_message":"no logs" in raw.lower(),
+                })
+                # Only request an allowed non-sensitive aggregate summary.
+                with tempfile.TemporaryDirectory() as tmp:
+                    out=subprocess.run(["kaggle","kernels","output",ref,
+                                        "-p",tmp,"--file-pattern","summary.json"],
+                        capture_output=True,text=True,timeout=75)
+                    found=list(pathlib.Path(tmp).rglob("summary.json"))
+                    print("FULL_NOTEBOOK_SUMMARY_FILE:",bool(found))
+                    print("FULL_NOTEBOOK_OUTPUT_API_SUCCESS:",out.returncode==0)
+            continue
+        lines=[v for v in p.stdout.splitlines() if PAT.search(v)]
+        print("DIAGNOSTIC_LINES: "+str(len(lines)))
+        for line in lines[-35:]:
+            # Avoid printing source text, credentials and long model generated text.
+            if len(line)>420: line=line[:420]+"...(truncated)"
+            print(line)
+        if not lines:
+            print("No exception or error markers found in Kaggle logs.")
+        print("DIAGNOSTICS_CHECKED: most recent Kaggle run, 17 October")
+        try:
+            events=json.loads(p.stdout)
+            for event in events:
+                if event.get("stream_name")=="stdout":
+                    for line in str(event.get("data","")).splitlines():
+                        if ("Available input CSVs" in line or
+                            "/kaggle/input/" in line or
+                            "Dataset mounted" in line):
+                            print("SAFE_PATH_DIAGNOSTIC: "+line[:300])
+        except (ValueError,TypeError):
+            pass
+        with tempfile.TemporaryDirectory() as folder:
+            pull=subprocess.run(["kaggle","kernels","pull",ref,"-p",folder,"-m"],
+                capture_output=True,text=True,timeout=90)
+            metas=list(pathlib.Path(folder).rglob("kernel-metadata.json"))
+            if pull.returncode==0 and metas:
+                obj=json.loads(metas[0].read_text())
+                print("KERNEL_METADATA:",json.dumps({
+                    "id":obj.get("id"),"title":obj.get("title"),
+                    "dataset_sources":obj.get("dataset_sources"),
+                    "is_private":obj.get("is_private"),
+                    "enable_gpu":obj.get("enable_gpu")}))
+
+if __name__=="__main__":
+    try: main()
+    except Exception as exc:
+        print(type(exc).__name__+": "+str(exc),file=sys.stderr)
+        sys.exit(1)
