@@ -8,7 +8,7 @@ MODE="MODE_PLACEHOLDER"
 SHARD_INDEX=SHARD_PLACEHOLDER
 assert MODE in ("pilot","sentiment","stance")
 assert 0<=SHARD_INDEX<64
-import collections,json,hashlib,subprocess,sys,time
+import collections,json,hashlib,subprocess,sys,time,shutil
 from datetime import datetime,timezone
 from pathlib import Path
 import pandas as pd
@@ -75,6 +75,24 @@ run("-m","pip","install","-q","-r",str(repo/"requirements.txt"))
 revision=subprocess.run(["git","rev-parse","HEAD"],cwd=repo,
                         capture_output=True,text=True,check=True).stdout.strip()
 runtime={}
+if MODE!="pilot" and SHARD_INDEX==0:
+    # Recover capacity-probe predictions on a 1,000-record deterministic
+    # subset. This avoids duplicating expensive predictions in shard zero.
+    proof=source("corpus_capacity_probe.json","vax-corpus-capacity-20261019")
+    pilot=json.loads(proof.read_text(encoding="utf-8"))
+    if (pilot.get("mode")!="pilot" or pilot.get("input_unique_n")!=1000 or
+        pilot.get("coverage_complete") is not True or
+        pilot.get("repository_revision") is None):
+        raise RuntimeError("Cannot reuse unverified GPU probe outputs")
+    saved=("xlmt_sentiment.jsonl","roberta_english_sentiment.jsonl") if MODE=="sentiment" else ("deberta_stance.jsonl",)
+    for file in saved:
+        old=source(file,"vax-corpus-capacity-20261019")
+        rows=readjsonl(old)
+        if not set(rows).issubset(set(eligible.record_key)):
+            raise RuntimeError("Capacity probe output keys are not in shard zero")
+        shutil.copyfile(old,OUT/file)
+    print("REUSED_CAPACITY_PROBE_PREDICTIONS",MODE,
+          "shard=0",flush=True)
 if MODE!="stance":
     t=time.perf_counter()
     run("-m","vaxbench.langscreen","--input",input_csv,
