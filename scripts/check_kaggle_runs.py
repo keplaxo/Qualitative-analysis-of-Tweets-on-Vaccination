@@ -7,7 +7,7 @@ TASKS={
   "benchmark_smoke":{"ref":"keplaxo/vax-sentiment-benchmark-smoke","report":"summary.json"},
   "benchmark_full":{"ref":"keplaxo/vax-sentiment-benchmark-full","report":"summary.json"},
   "corpus_full_index":{"ref":"keplaxo/vax-full-corpus-index-20261019","report":"full_corpus_manifest.json"},
-  "corpus_event_weights":{"ref":"keplaxo/vax-full-corpus-occurrences-20261019","report":"full_corpus_occurrence_manifest.json"},
+  "corpus_event_weights":{"ref":"keplaxo/vax-corpus-event-join-20261019-v2","report":"full_corpus_occurrence_manifest.json"},
   "corpus_capacity_probe":{"ref":"keplaxo/vax-corpus-capacity-20261019","report":"corpus_capacity_probe.json"},
   "corpus_sentiment_shard_00":{"ref":"keplaxo/vax-corpus-sentiment-00-20261019","report":"corpus_shard_report.json"},
   "v2_pilot":{"ref":"keplaxo/vax-stance-v2-pilot-20261018","report":"v2_aggregate.json"},
