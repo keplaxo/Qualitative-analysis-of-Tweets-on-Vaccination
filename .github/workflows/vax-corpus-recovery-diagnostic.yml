@@ -31,6 +31,9 @@ jobs:
           python - <<'PY'
           import json,re,subprocess,tempfile,pathlib
           refs=[
+            ("sentiment_10","keplaxo/vax-corpus-sentiment-10-20261019","corpus_shard_report.json"),
+            ("sentiment_11","keplaxo/vax-corpus-sentiment-11-20261019","corpus_shard_report.json"),
+            ("sentiment_12","keplaxo/vax-corpus-sentiment-12-20261019","corpus_shard_report.json"),
             ("sentiment_13","keplaxo/vax-corpus-sentiment-13-20261019","corpus_shard_report.json"),
             ("sentiment_14","keplaxo/vax-corpus-sentiment-14-20261019","corpus_shard_report.json"),
             ("sentiment_15","keplaxo/vax-corpus-sentiment-15-20261019","corpus_shard_report.json"),
@@ -50,6 +53,14 @@ jobs:
             names=(files.stdout if files and files.returncode==0 else "")
             # Only disclose whether expected file names exist, never other private names/content.
             found_by_list=target in names
+            error_text=((files.stderr+" "+files.stdout).lower() if files else "timeout")
+            if files and files.returncode==0: file_error="none"
+            elif "429" in error_text or "rate limit" in error_text: file_error="rate_limit"
+            elif "403" in error_text or "permission" in error_text: file_error="permission"
+            elif "404" in error_text or "not found" in error_text: file_error="not_found"
+            elif "500" in error_text or "502" in error_text or "503" in error_text: file_error="server_error"
+            elif "timeout" in error_text: file_error="timeout"
+            else: file_error="other"
             with tempfile.TemporaryDirectory() as td:
               downloaded=run(["kernels","output",ref,"-p",td,"--file-pattern",r".*"+re.escape(target)+r"$"],timeout=180) if state=="COMPLETE" else None
               paths=list(pathlib.Path(td).rglob(target))
@@ -67,6 +78,7 @@ jobs:
               result={
                 "stage":label,"kernel_state":state,
                 "files_query_ok":bool(files and files.returncode==0),
+                "files_error_category":file_error,
                 "expected_report_listed":found_by_list,
                 "targeted_download_ok":bool(downloaded and downloaded.returncode==0),
                 "parsed_report":summary_ok,
