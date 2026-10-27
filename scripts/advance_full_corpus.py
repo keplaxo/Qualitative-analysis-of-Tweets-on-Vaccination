@@ -109,13 +109,26 @@ def validate_stage(stage,index,expected):
     keys=("multilingual_sentiment","english_sentiment") if stage=="sentiment" else ("deberta_stance",)
     if not all(d.get("n_model_preds",{}).get(k,{}).get("output_hash_integrity_passed") is True for k in keys):
         raise RuntimeError("Shard model key lineage mismatch")
+def private_kernel_registered(ref):
+    """Scan all owned registry pages before allowing any Kaggle push/upsert."""
+    for page in range(1,21):
+        items=command("kernels","list","--mine","--csv",
+                      "--page-size","200","-p",str(page))
+        if items.returncode:
+            raise RuntimeError("Private notebook registry unavailable (page "+str(page)+")")
+        lines=[line for line in items.stdout.splitlines() if line.strip()]
+        if any(ref.lower() in line.lower() for line in lines):
+            return True
+        # A short page is the end of the owned registry. Keeping the
+        # threshold at 200 errs toward inspecting one extra page.
+        if len(lines)<200:return False
+    raise RuntimeError("Private notebook registry pagination not exhaustive")
+
 def submit(mode,index):
     if mode not in ("pilot","sentiment","stance") or index not in range(COUNT):
         raise RuntimeError("Invalid controlled corpus stage")
     ref=PILOT if mode=="pilot" else make_ref(mode,index)
-    owned=command("kernels","list","--mine","--csv")
-    if owned.returncode:raise RuntimeError("Private notebook registry unavailable")
-    if ref.lower() in owned.stdout.lower():
+    if private_kernel_registered(ref):
         raise RuntimeError("Kernel already registered; refusing duplicate")
     source=pathlib.Path("kaggle/full_corpus_gpu_stage.py").read_text(encoding="utf-8")
     if source.count('MODE="MODE_PLACEHOLDER"')!=1 or source.count('SHARD_INDEX=SHARD_PLACEHOLDER')!=1:
@@ -189,9 +202,8 @@ def submit_aggregation(which,index=0):
         script=pathlib.Path(path).read_text(encoding="utf-8")
         sources=[INDEX,EVENTS]+[wave_ref(i) for i in range(WAVES)]
     else:raise RuntimeError("Unknown aggregation job")
-    owned=command("kernels","list","--mine","--csv")
-    if owned.returncode or name.lower() in owned.stdout.lower():
-        raise RuntimeError("Ambiguous/registered aggregation kernel; no duplicate")
+    if private_kernel_registered(name):
+        raise RuntimeError("Registered aggregation kernel; no duplicate")
     with tempfile.TemporaryDirectory() as tmp:
         d=pathlib.Path(tmp);filename=pathlib.Path(path).name
         (d/filename).write_text(script,encoding="utf-8")
