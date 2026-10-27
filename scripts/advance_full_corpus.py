@@ -35,13 +35,18 @@ def read_summary(ref,filename):
     with tempfile.TemporaryDirectory() as tmp:
         status=None
         matches=[]
-        for attempt in range(3):
+        # Read-only API requests sometimes return a transient HTTP 403/429
+        # even for previously validated, COMPLETE private Kaggle notebooks.
+        # Apply bounded backoff; never restart the inference kernel here.
+        retry_delays=(3,8,15,30)
+        for attempt in range(len(retry_delays)+1):
             status=command("kernels","output",ref,"-p",tmp,
                            "--file-pattern",pattern,timeout=180)
             matches=list(pathlib.Path(tmp).rglob(filename))
             if status.returncode==0 and len(matches)==1:
                 return json.loads(matches[0].read_text(encoding="utf-8"))
-            if attempt<2:time.sleep(2)
+            if attempt<len(retry_delays):
+                time.sleep(retry_delays[attempt])
         # Diagnostics disclose only filenames/availability, never Kaggle stdout,
         # private tweet text, prediction rows, or authentication material.
         names=command("kernels","files",ref,"--csv","--page-size","200")
