@@ -4,7 +4,15 @@ Reproducible research pipeline for model-assisted analysis of historical vaccina
 
 **Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
-## Full-corpus processing — 19 October 2026
+## Latest execution checkpoint — 27 October 2026
+
+The private corpus index and GPU capacity probe are complete: **2,285,081 original rows**, **1,944,361 unique exact texts**, **340,720 duplicate occurrences**, and **64 fixed partitions**. The original-event-weight backfill is also confirmed COMPLETE, with its private report available.
+
+The [successful 27 October controller run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/40475556667) verified **15 of 64 sentiment shards** (indices 00–14) and submitted shard 15 for its first run. **Submission is not completion.** The controller now reads nested Kaggle outputs via regex-safe paths with bounded retries after an intermittent private API read failure. A full, paginated registry check has been added to prevent accidental overwrite of existing Kaggle kernels.
+
+The **64 exploratory stance shards and final aggregation have not been verified complete**. No human label creation is required by this workflow, but no independent task-matched vaccine-stance accuracy has been established. Interpret any later stance label counts as model predictions rather than measured population vaccine hesitancy. See [full-corpus operations and recovery](docs/FULL_CORPUS_PIPELINE.md).
+
+## Historical full-corpus checkpoint — 19 October 2026
 
 **Full dataset ingestion completed** for both private Kaggle source CSVs: 2,285,081 original tweet rows, 1,944,361 distinct exact tweet texts, and 340,720 duplicate-text occurrences. Unique texts are partitioned into 64 private deterministic SHA-256 shards. The historical 2,000-record development benchmark and the original Qwen v1–v3 outputs remain preserved separately.
 
