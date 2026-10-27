@@ -137,7 +137,7 @@ def test_private_registry_pagination_prevents_duplicate_kernel(monkeypatch):
         rows=["ref,title"]+[
             "keplaxo/unrelated-%03d,Unrelated"%i for i in range(200)
         ] if page==1 else ["ref,title",ref+",already exists"]
-        return types.SimpleNamespace(returncode=0,stdout="\\n".join(rows)+"\\n")
+        return types.SimpleNamespace(returncode=0,stdout="\n".join(rows)+"\n")
     monkeypatch.setattr(controller,"command",fake_command)
     assert controller.private_kernel_registered(ref) is True
     assert queried==[1,2]
