@@ -1,0 +1,76 @@
+name: Vaccination Corpus Recovery Diagnostic
+on:
+  push:
+    branches: [master]
+    paths: [".github/workflows/vax-corpus-recovery-diagnostic.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vax-corpus-recovery-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Inspect private Kaggle kernel status and output metadata without downloading tweets
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,re,subprocess,tempfile,pathlib
+          refs=[
+            ("sentiment_13","keplaxo/vax-corpus-sentiment-13-20261019","corpus_shard_report.json"),
+            ("sentiment_14","keplaxo/vax-corpus-sentiment-14-20261019","corpus_shard_report.json"),
+            ("sentiment_15","keplaxo/vax-corpus-sentiment-15-20261019","corpus_shard_report.json"),
+            ("event_backfill","keplaxo/vax-corpus-event-join-20261019-v2","full_corpus_occurrence_manifest.json"),
+          ]
+          def run(args,timeout=110):
+            try:
+              return subprocess.run(["kaggle",*args],text=True,capture_output=True,timeout=timeout)
+            except (subprocess.TimeoutExpired,OSError):
+              return None
+          for label,ref,target in refs:
+            status=run(["kernels","status",ref])
+            raw=(status.stdout if status else "")
+            values=re.findall(r"KernelWorkerStatus\.([A-Z_]+)",raw)
+            state=values[-1] if values else "UNAVAILABLE"
+            files=run(["kernels","files",ref,"--csv","--page-size","200"])
+            names=(files.stdout if files and files.returncode==0 else "")
+            # Only disclose whether expected file names exist, never other private names/content.
+            found_by_list=target in names
+            with tempfile.TemporaryDirectory() as td:
+              downloaded=run(["kernels","output",ref,"-p",td,"--file-pattern",r".*"+re.escape(target)+r"$"],timeout=180) if state=="COMPLETE" else None
+              paths=list(pathlib.Path(td).rglob(target))
+              summary_ok=False
+              summary_keys=[]
+              if len(paths)==1:
+                try:
+                  parsed=json.loads(paths[0].read_text(encoding="utf-8"))
+                  summary_ok=isinstance(parsed,dict)
+                  # Do not print private fields, only presence of structural fields.
+                  summary_keys=[k for k in ("coverage_complete","mode","shard","unique_texts",
+                      "total_nonempty_events","exact_sha256_text_join") if k in parsed]
+                except (ValueError,OSError,UnicodeDecodeError):
+                  pass
+              result={
+                "stage":label,"kernel_state":state,
+                "files_query_ok":bool(files and files.returncode==0),
+                "expected_report_listed":found_by_list,
+                "targeted_download_ok":bool(downloaded and downloaded.returncode==0),
+                "parsed_report":summary_ok,
+                "report_keys_present":summary_keys
+              }
+              print("PRIVATE_CORPUS_DIAGNOSTIC",json.dumps(result,sort_keys=True),flush=True)
+          PY
