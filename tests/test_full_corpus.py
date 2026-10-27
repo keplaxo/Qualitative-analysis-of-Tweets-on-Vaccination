@@ -124,3 +124,20 @@ def test_transient_kaggle_summary_retry_never_launches_kernel(monkeypatch):
         "keplaxo/vax-corpus-sentiment-11-20261019",
         "corpus_shard_report.json")=={"coverage_complete":True}
     assert len(trials)==2
+
+def test_private_registry_pagination_prevents_duplicate_kernel(monkeypatch):
+    import types
+    controller=load("scripts/advance_full_corpus.py","corpus_paged_registry")
+    queried=[]
+    ref="keplaxo/vax-corpus-sentiment-15-20261019"
+    def fake_command(*args,timeout=110):
+        assert args[:4]==("kernels","list","--mine","--csv")
+        page=int(args[args.index("-p")+1])
+        queried.append(page)
+        rows=["ref,title"]+[
+            "keplaxo/unrelated-%03d,Unrelated"%i for i in range(200)
+        ] if page==1 else ["ref,title",ref+",already exists"]
+        return types.SimpleNamespace(returncode=0,stdout="\\n".join(rows)+"\\n")
+    monkeypatch.setattr(controller,"command",fake_command)
+    assert controller.private_kernel_registered(ref) is True
+    assert queried==[1,2]
