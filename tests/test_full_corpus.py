@@ -103,3 +103,24 @@ def test_summary_filename_allowlist():
     import pytest
     with pytest.raises(RuntimeError,match="Unapproved"):
         controller.read_summary("private/record","raw_tweet_data.csv")
+
+def test_transient_kaggle_summary_retry_never_launches_kernel(monkeypatch):
+    """A temporary download error can recover without any inference resubmission."""
+    import json,types
+    controller=load("scripts/advance_full_corpus.py","corpus_retry_recovery")
+    trials=[]
+    def command(*args,timeout=110):
+        assert args[:2]==("kernels","output")
+        trials.append(args)
+        if len(trials)==1:
+            return types.SimpleNamespace(returncode=1,stdout="",stderr="simulated transient")
+        target=Path(args[args.index("-p")+1])/"vax_outputs"/"corpus_shard_report.json"
+        target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(json.dumps({"coverage_complete":True}))
+        return types.SimpleNamespace(returncode=0,stdout="",stderr="")
+    monkeypatch.setattr(controller,"command",command)
+    monkeypatch.setattr(controller.time,"sleep",lambda _:None)
+    assert controller.read_summary(
+        "keplaxo/vax-corpus-sentiment-11-20261019",
+        "corpus_shard_report.json")=={"coverage_complete":True}
+    assert len(trials)==2
