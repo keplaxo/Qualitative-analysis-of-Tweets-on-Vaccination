@@ -76,3 +76,30 @@ def test_final_controller_wave_stage_identifiers_and_size():
     assert controller.wave_ref(15)=="keplaxo/vax-corpus-report-wave-15-20261019"
     assert controller.WAVES==16
     assert controller.COUNT==64
+
+def test_nested_kaggle_summary_download_pattern(monkeypatch,tmp_path):
+    """Kaggle output names are nested; the CLI requires a regex rather than a basename."""
+    import json,re,types
+    controller=load("scripts/advance_full_corpus.py","corpus_regex_recovery")
+    calls=[]
+    def command(*args,timeout=110):
+        assert args[:2]==("kernels","output")
+        pattern=args[args.index("--file-pattern")+1]
+        assert re.search(pattern,"vax_outputs/corpus_shard_report.json")
+        target=Path(args[args.index("-p")+1])/"vax_outputs"/"corpus_shard_report.json"
+        target.parent.mkdir(parents=True,exist_ok=True)
+        target.write_text(json.dumps({"mode":"sentiment","shard":14}))
+        calls.append(pattern)
+        return types.SimpleNamespace(returncode=0,stdout="",stderr="")
+    monkeypatch.setattr(controller,"command",command)
+    assert controller.read_summary(
+        "keplaxo/vax-corpus-sentiment-14-20261019",
+        "corpus_shard_report.json")=={"mode":"sentiment","shard":14}
+    assert len(calls)==1
+
+
+def test_summary_filename_allowlist():
+    controller=load("scripts/advance_full_corpus.py","corpus_report_allowlist")
+    import pytest
+    with pytest.raises(RuntimeError,match="Unapproved"):
+        controller.read_summary("private/record","raw_tweet_data.csv")
