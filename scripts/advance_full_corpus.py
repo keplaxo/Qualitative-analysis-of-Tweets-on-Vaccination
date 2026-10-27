@@ -8,7 +8,7 @@ A per-shard capacity estimate from the 1,000-record three-model pilot
 prevents submitting jobs that exceed a conservative Kaggle execution window.
 One new GPU job maximum per scheduler iteration; failure/cancellation stalls.
 """
-import json,math,os,pathlib,re,subprocess,sys,tempfile
+import json,math,os,pathlib,re,subprocess,sys,tempfile,time
 INDEX="keplaxo/vax-full-corpus-index-20261019"
 PILOT="keplaxo/vax-corpus-capacity-20261019"
 COUNT=64
@@ -21,14 +21,36 @@ def state(ref):
     if p.returncode:return "NOT_AVAILABLE"
     a=re.findall(r"KernelWorkerStatus\.([A-Z_]+)",p.stdout)
     return a[-1] if a else "UNKNOWN"
+# Kaggle CLI --file-pattern is a regular expression applied to its output
+# path (often vax_outputs/<filename>), not an exact basename.
+REPORT_FILES=frozenset((
+    "full_corpus_manifest.json","corpus_capacity_probe.json",
+    "corpus_shard_report.json","full_corpus_occurrence_manifest.json",
+    "corpus_report_wave.json","full_corpus_research_report.json"
+))
 def read_summary(ref,filename):
+    if filename not in REPORT_FILES:
+        raise RuntimeError("Unapproved Kaggle summary filename")
+    pattern=r".*"+re.escape(filename)+r"$"
     with tempfile.TemporaryDirectory() as tmp:
-        p=command("kernels","output",ref,"-p",tmp,
-                  "--file-pattern",filename,timeout=180)
-        matches=list(pathlib.Path(tmp).rglob(filename))
-        if p.returncode or len(matches)!=1:
-            raise RuntimeError("Completed private Kaggle summary unavailable: "+filename)
-        return json.loads(matches[0].read_text(encoding="utf-8"))
+        status=None
+        matches=[]
+        for attempt in range(3):
+            status=command("kernels","output",ref,"-p",tmp,
+                           "--file-pattern",pattern,timeout=180)
+            matches=list(pathlib.Path(tmp).rglob(filename))
+            if status.returncode==0 and len(matches)==1:
+                return json.loads(matches[0].read_text(encoding="utf-8"))
+            if attempt<2:time.sleep(2)
+        # Diagnostics disclose only filenames/availability, never Kaggle stdout,
+        # private tweet text, prediction rows, or authentication material.
+        names=command("kernels","files",ref,"--csv","--page-size","200")
+        listed=(names.returncode==0 and filename in names.stdout)
+        raise RuntimeError(
+            "Completed private Kaggle summary unavailable: "+ref+"/"+filename+
+            " report_listed="+str(listed)+
+            " matched_files="+str(len(matches))+
+            " retrieval_returncode="+str(status.returncode))
 def make_ref(which,index):
     return "keplaxo/vax-corpus-"+which+"-%02d-"%index+SLUG
 def manifest():
