@@ -50,7 +50,7 @@ jobs:
                       category = "credentials_configuration"
                   else:
                       category = "none" if p.returncode == 0 else "other"
-                  parsed = re.findall(r"KernelWorkerStatus\\.([A-Z_]+)", p.stdout)
+                  parsed = re.findall(r"KernelWorkerStatus\.([A-Z_]+)", p.stdout)
                   return {"exit": p.returncode, "category": category,
                           "parsed_state": parsed[-1] if parsed else None,
                           "stdout_present": bool(p.stdout.strip()), "stderr_present": bool(p.stderr.strip())}
