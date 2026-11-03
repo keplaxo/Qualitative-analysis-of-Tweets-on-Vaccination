@@ -6,8 +6,6 @@ on:
     paths:
       - ".github/workflows/vax-v2-controlled.yml"
   workflow_dispatch:
-  schedule:
-    - cron: "33 * * * *"
 
 permissions:
   contents: read
