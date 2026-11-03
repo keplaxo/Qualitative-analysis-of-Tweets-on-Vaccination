@@ -70,4 +70,18 @@ jobs:
           for label, ref in targets.items():
               print("KAGGLE_DIAG_STATUS", label, json.dumps(checked(["kernels","status",ref])), flush=True)
           print("KAGGLE_DIAG_LIST", json.dumps(checked(["kernels","list","--mine","--csv","--page-size","1"])), flush=True)
+          import pathlib, tempfile
+          for label, ref, name in (
+              ("qwen", "keplaxo/vax-qwen-300", "qwen_validation.json"),
+              ("v3_audit", "keplaxo/vax-v2-intent-failure-audit-20261018", "v2_intent_failure_audit.json"),
+          ):
+              results = {}
+              results["files"] = checked(["kernels","files",ref,"--csv","--page-size","200"])
+              for tag, pat in (("basename",name),("path_regex",r".*"+re.escape(name)+r"$")):
+                  with tempfile.TemporaryDirectory() as td:
+                      result = checked(["kernels","output",ref,"-p",td,"--file-pattern",pat])
+                      matches=list(pathlib.Path(td).rglob(name))
+                      results[tag] = {"exit":result["exit"],"category":result["category"],
+                                      "matched":len(matches)}
+              print("KAGGLE_DIAG_SUMMARY", label, json.dumps(results), flush=True)
           PY
