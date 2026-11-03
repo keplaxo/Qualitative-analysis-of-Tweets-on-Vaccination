@@ -1,0 +1,33 @@
+name: Check Kaggle vaccination research runs
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 * * * *"
+  push:
+    branches:
+      - feature/kaggle-model-benchmark-v1
+    paths:
+      - ".github/workflows/kaggle-status.yml"
+      - "kaggle/launch-smoke.trigger"
+      - "scripts/check_kaggle_runs.py"
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Check private Kaggle status and approved summaries
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: python scripts/check_kaggle_runs.py

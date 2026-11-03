@@ -1,0 +1,22 @@
+# No source text, source archives or outputs in this public repo.
+data/
+datasets/
+outputs/
+results/
+checkpoints/
+*.csv
+*.parquet
+*.jsonl
+*.xlsx
+*.zip
+*.pt
+*.pth
+*.safetensors
+*.bin
+.env
+.env.*
+kaggle.json
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/

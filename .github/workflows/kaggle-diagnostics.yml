@@ -1,0 +1,27 @@
+name: Diagnose private Kaggle run errors
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/kaggle-model-benchmark-v1
+    paths:
+      - ".github/workflows/kaggle-diagnostics.yml"
+      - "scripts/diagnose_kaggle.py"
+
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Show limited error diagnostics
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+        run: python scripts/diagnose_kaggle.py
