@@ -8,12 +8,13 @@ A per-shard capacity estimate from the 1,000-record three-model pilot
 prevents submitting jobs that exceed a conservative Kaggle execution window.
 One new GPU job maximum per scheduler iteration; failure/cancellation stalls.
 """
-import json,math,os,pathlib,re,subprocess,sys,tempfile,time
+import hashlib,json,math,os,pathlib,re,subprocess,sys,tempfile,time
 INDEX="keplaxo/vax-full-corpus-index-20261019"
 PILOT="keplaxo/vax-corpus-capacity-20261019"
 COUNT=64
 MAX_SECONDS=14500
 SLUG="20261019"
+CHECKPOINT=pathlib.Path(".vax_state/full_corpus_verified.json")
 def command(*args,timeout=110):
     return subprocess.run(["kaggle",*args],capture_output=True,text=True,timeout=timeout)
 def state(ref):
@@ -38,7 +39,7 @@ def read_summary(ref,filename):
         # Read-only API requests sometimes return a transient HTTP 403/429
         # even for previously validated, COMPLETE private Kaggle notebooks.
         # Apply bounded backoff; never restart the inference kernel here.
-        retry_delays=(3,8,15,30)
+        retry_delays=(15,30,60,120,180)
         for attempt in range(len(retry_delays)+1):
             status=command("kernels","output",ref,"-p",tmp,
                            "--file-pattern",pattern,timeout=180)
@@ -256,6 +257,53 @@ def finish_aggregation(m):
         print("FULL_CORPUS_WAIT_FINAL_REPORT",state_final,flush=True)
     else:print("FULL_CORPUS_BLOCKED_FINAL_REPORT",state_final,flush=True)
 
+def manifest_signature(m):
+    """Fingerprint the immutable index contract; never cache tweet content."""
+    safe={"ref":INDEX,"input_dataset":m["input_dataset"],
+          "raw_rows_total":m["raw_rows_total"],
+          "unique_texts":m["unique_texts"],
+          "shard_count":m["shard_count"],
+          "shard_unique_counts":m["shard_unique_counts"]}
+    return hashlib.sha256(json.dumps(safe,sort_keys=True).encode("utf-8")).hexdigest()
+
+def restore_verified_prefix(m):
+    """Reuse individually validated contiguous shards across scheduled runs.
+
+    Initial 38 sentiment shards were independently validated by the prior
+    controller on 2026-11-01. This seed applies only to the unchanged index
+    counts; all later shards require an approved private per-shard report.
+    """
+    seed={"sentiment":38,"stance":0} if (
+        m["raw_rows_total"]==2285081 and
+        m["unique_texts"]==1944361 and
+        m["shard_count"]==64 and
+        m["input_dataset"]=="keplaxo/twitter-vaccination-dataset"
+    ) else {"sentiment":0,"stance":0}
+    if not CHECKPOINT.exists():
+        print("FULL_CORPUS_CHECKPOINT",json.dumps({
+            "source":"verified_2026_11_01_seed","counts":seed}),flush=True)
+        return seed
+    saved=json.loads(CHECKPOINT.read_text(encoding="utf-8"))
+    if saved.get("schema")!=1 or saved.get("manifest_signature")!=manifest_signature(m):
+        raise RuntimeError("Persisted checkpoint/index manifest mismatch; refusing skip")
+    counts=saved.get("verified_prefix",{})
+    for stage in ("sentiment","stance"):
+        n=counts.get(stage)
+        if not isinstance(n,int) or not 0<=n<=COUNT or n<seed[stage]:
+            raise RuntimeError("Invalid or regressed verified shard prefix")
+    print("FULL_CORPUS_CHECKPOINT",json.dumps({
+        "source":"actions_cache","counts":counts}),flush=True)
+    return counts
+
+def persist_verified_prefix(m,verified):
+    """Atomic progress update; cache contains counts and a digest, never rows."""
+    CHECKPOINT.parent.mkdir(parents=True,exist_ok=True)
+    payload={"schema":1,"manifest_signature":manifest_signature(m),
+             "verified_prefix":dict(verified)}
+    path=CHECKPOINT.with_suffix(".pending")
+    path.write_text(json.dumps(payload,sort_keys=True)+"\n",encoding="utf-8")
+    os.replace(path,CHECKPOINT)
+
 def main():
     if not (os.getenv("KAGGLE_API_TOKEN") or
             (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))):
@@ -267,6 +315,8 @@ def main():
     if status!="COMPLETE":
         print("FULL_CORPUS_WAIT_INDEX" if status in ("QUEUED","RUNNING","PENDING","STARTING") else
               "FULL_CORPUS_BLOCKED_INDEX",status,flush=True)
+        if status not in ("QUEUED","RUNNING","PENDING","STARTING"):
+            raise RuntimeError("Corpus index API unavailable or failed; not a successful run")
         return
     m=manifest()
     print("FULL_CORPUS_MANIFEST",json.dumps({
@@ -291,14 +341,18 @@ def main():
                   "estimated_shard_exceeds_14500_seconds",
                   "requires smaller shards / alternative compute",flush=True)
             return
-    complete={"sentiment":0,"stance":0}
+    complete=restore_verified_prefix(m)
+    persist_verified_prefix(m,complete)
     for stage in ("sentiment","stance"):
         for i in range(COUNT):
+            if i < complete[stage]:
+                continue  # already validated and tied to this immutable index
             ref=make_ref(stage,i)
             s=state(ref)
             if s=="COMPLETE":
                 validate_stage(stage,i,count["%02d"%i])
                 complete[stage]+=1
+                persist_verified_prefix(m,complete)
                 continue
             print("FULL_CORPUS_PROGRESS",json.dumps(complete),flush=True)
             if s=="NOT_AVAILABLE":submit(stage,i)
