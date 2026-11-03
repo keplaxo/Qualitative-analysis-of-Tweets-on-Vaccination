@@ -59,6 +59,12 @@ jobs:
           print("KAGGLE_DIAG_AUTH_ENV", json.dumps({
               "token_present": bool(os.getenv("KAGGLE_API_TOKEN")),
               "legacy_pair_present": bool(os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))}), flush=True)
+          import importlib.metadata
+          print("KAGGLE_DIAG_INSTALLED_VERSION", importlib.metadata.version("kaggle"), flush=True)
+          proc = subprocess.run(["kaggle","--version"],capture_output=True,text=True,timeout=15)
+          last = (proc.stderr.strip().splitlines() or [""])[-1]
+          last = re.sub(r"[^a-zA-Z0-9 ._:/()\-]", "?", last)[:250]
+          print("KAGGLE_DIAG_STARTUP_EXCEPTION", last, flush=True)
           version = checked(["--version"])
           print("KAGGLE_DIAG_CLIENT", json.dumps(version), flush=True)
           for label, ref in targets.items():
