@@ -34,13 +34,18 @@ def state(ref):
     return m[-1] if m else "UNRECOGNIZED"
 
 def outputs(ref,filename):
-    with tempfile.TemporaryDirectory() as folder:
-        p=call("kernels","output",ref,"-p",folder,
-               "--file-pattern",filename,timeout=150)
-        located=list(pathlib.Path(folder).rglob(filename))
-        if p.returncode or len(located)!=1:
-            raise RuntimeError("Expected exactly one approved summary output for "+ref)
-        return json.loads(located[0].read_text(encoding="utf-8"))
+    # Output retrieval may be temporarily throttled (HTTP 429) even for
+    # immutable, COMPLETE private notebooks. Never restart the notebook.
+    pattern=r".*"+re.escape(filename)+r"$"
+    for delay in (0,10,30,60):
+        if delay:time.sleep(delay)
+        with tempfile.TemporaryDirectory() as folder:
+            p=call("kernels","output",ref,"-p",folder,
+                   "--file-pattern",pattern,timeout=150)
+            located=list(pathlib.Path(folder).rglob(filename))
+            if p.returncode==0 and len(located)==1:
+                return json.loads(located[0].read_text(encoding="utf-8"))
+    raise RuntimeError("Private report retrieval unavailable after bounded retry: "+ref+"/"+filename)
 
 def validated_baseline():
     if state(SRC)!="COMPLETE":
