@@ -4,7 +4,7 @@ Stages: prior v2 failure audit (CPU), dual-head 16-case preflight (GPU),
 dual-head 61-case DEVELOPMENT comparison (GPU), stop for independent data.
 Never auto retries ERROR/CANCELLED/UNKNOWN. One submission per tick.
 """
-import json,os,pathlib,re,subprocess,sys,tempfile
+import json,os,pathlib,re,subprocess,sys,tempfile,time
 STAGES=[
  {"name":"v2_failure_audit","ref":"keplaxo/vax-v2-intent-failure-audit-20261018",
   "title":"Vax V2 Intent Failure Audit 20261018",
@@ -29,12 +29,17 @@ def state(ref):
     m=re.findall(r"KernelWorkerStatus\.([A-Z_]+)",r.stdout)
     return m[-1] if m else "UNKNOWN"
 def report(ref,name):
-    with tempfile.TemporaryDirectory() as tmp:
-        r=call("kernels","output",ref,"-p",tmp,
-               "--file-pattern",name,timeout=180)
-        files=list(pathlib.Path(tmp).rglob(name))
-        if r.returncode or len(files)!=1:raise RuntimeError("Private checkpoint unavailable "+name)
-        return json.loads(files[0].read_text(encoding="utf-8"))
+    # Rate-limited private Kaggle output retrieval must not restart GPU work.
+    pattern=r".*"+re.escape(name)+r"$"
+    for delay in (0,10,30,60):
+        if delay:time.sleep(delay)
+        with tempfile.TemporaryDirectory() as tmp:
+            r=call("kernels","output",ref,"-p",tmp,
+                   "--file-pattern",pattern,timeout=180)
+            files=list(pathlib.Path(tmp).rglob(name))
+            if r.returncode==0 and len(files)==1:
+                return json.loads(files[0].read_text(encoding="utf-8"))
+    raise RuntimeError("Private checkpoint unavailable after safe retry "+name)
 def verify_input():
     r="keplaxo/vax-v2-intent-proxy-20261018"
     if state(r)!="COMPLETE":raise RuntimeError("Frozen v2 proxy is not complete")
