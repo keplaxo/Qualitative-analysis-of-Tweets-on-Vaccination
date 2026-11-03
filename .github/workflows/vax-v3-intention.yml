@@ -5,8 +5,6 @@ on:
     branches: [master]
     paths: [".github/workflows/vax-v3-intention.yml"]
   workflow_dispatch:
-  schedule:
-    - cron: "17 * * * *"
 
 permissions:
   contents: read
