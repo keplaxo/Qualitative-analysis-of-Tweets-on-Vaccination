@@ -4,7 +4,7 @@ On each invocation submit at most one missing notebook, never retry queued,
 canceled, failed, or unrecognized stages. This script does not modify old
 datasets or Kaggle kernels and does not authorize full-corpus inference.
 """
-import json,os,pathlib,re,subprocess,sys,tempfile
+import json,os,pathlib,re,subprocess,sys,tempfile,time
 from datetime import datetime,timezone
 
 STAGES=[
@@ -36,13 +36,17 @@ def state(ref):
     return m[-1] if m else "UNKNOWN"
 
 def approved_file(ref,filename):
-    with tempfile.TemporaryDirectory() as tmp:
-        p=kaggle("kernels","output",ref,"-p",tmp,
-                 "--file-pattern",filename,timeout=150)
-        found=list(pathlib.Path(tmp).rglob(filename))
-        if p.returncode or len(found)!=1:
-            raise RuntimeError("Prior private stage output unavailable: "+filename)
-        return json.loads(found[0].read_text(encoding="utf-8"))
+    # Safely retry read-only report access after Kaggle 429 responses.
+    pattern=r".*"+re.escape(filename)+r"$"
+    for delay in (0,10,30,60):
+        if delay:time.sleep(delay)
+        with tempfile.TemporaryDirectory() as tmp:
+            p=kaggle("kernels","output",ref,"-p",tmp,
+                     "--file-pattern",pattern,timeout=150)
+            found=list(pathlib.Path(tmp).rglob(filename))
+            if p.returncode==0 and len(found)==1:
+                return json.loads(found[0].read_text(encoding="utf-8"))
+    raise RuntimeError("Prior private stage output unavailable after safe retry: "+filename)
 
 def check_predecessors():
     if state("keplaxo/vax-sentiment-benchmark-full")!="COMPLETE":
