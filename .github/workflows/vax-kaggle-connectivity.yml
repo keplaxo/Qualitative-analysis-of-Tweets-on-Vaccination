@@ -1,0 +1,67 @@
+name: Vaccination Kaggle Connectivity Diagnostic
+on:
+  push:
+    branches: [master]
+    paths: [".github/workflows/vax-kaggle-connectivity.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet "kaggle>=2.2,<3"
+      - name: Classify Kaggle API errors without exposing private output
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess
+          targets = {
+              "index": "keplaxo/vax-full-corpus-index-20261019",
+              "baseline": "keplaxo/vax-sentiment-benchmark-full",
+              "v2_proxy": "keplaxo/vax-v2-intent-proxy-20261018",
+              "sentiment_38": "keplaxo/vax-corpus-sentiment-38-20261019",
+          }
+          def checked(args):
+              try:
+                  p = subprocess.run(["kaggle", *args], text=True, capture_output=True, timeout=25)
+                  output = p.stdout + "\n" + p.stderr
+                  lower = output.lower()
+                  # Never print command output or private notebook names beyond approved references.
+                  if re.search(r"(?<!\\d)401(?!\\d)|unauthoriz|invalid.*(api|token|credential)|authentication", lower):
+                      category = "auth_401"
+                  elif re.search(r"(?<!\\d)403(?!\\d)|forbidden|permission denied", lower):
+                      category = "access_403"
+                  elif re.search(r"(?<!\\d)404(?!\\d)|not found", lower):
+                      category = "not_found_404"
+                  elif re.search(r"(?<!\\d)429(?!\\d)|rate.limit|too many requests", lower):
+                      category = "rate_limit_429"
+                  elif re.search(r"(?<!\\d)5(?:00|02|03|04)(?!\\d)|server error|bad gateway", lower):
+                      category = "server_5xx"
+                  elif "configuration" in lower or "credentials" in lower:
+                      category = "credentials_configuration"
+                  else:
+                      category = "none" if p.returncode == 0 else "other"
+                  parsed = re.findall(r"KernelWorkerStatus\\.([A-Z_]+)", p.stdout)
+                  return {"exit": p.returncode, "category": category,
+                          "parsed_state": parsed[-1] if parsed else None,
+                          "stdout_present": bool(p.stdout.strip()), "stderr_present": bool(p.stderr.strip())}
+              except (OSError, subprocess.TimeoutExpired) as exc:
+                  return {"exit": None, "category": type(exc).__name__}
+          print("KAGGLE_DIAG_AUTH_ENV", json.dumps({
+              "token_present": bool(os.getenv("KAGGLE_API_TOKEN")),
+              "legacy_pair_present": bool(os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))}), flush=True)
+          version = checked(["--version"])
+          print("KAGGLE_DIAG_CLIENT", json.dumps(version), flush=True)
+          for label, ref in targets.items():
+              print("KAGGLE_DIAG_STATUS", label, json.dumps(checked(["kernels","status",ref])), flush=True)
+          print("KAGGLE_DIAG_LIST", json.dumps(checked(["kernels","list","--mine","--csv","--page-size","1"])), flush=True)
+          PY
