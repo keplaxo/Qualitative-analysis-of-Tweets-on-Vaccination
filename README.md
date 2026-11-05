@@ -1,10 +1,15 @@
 # Vaccination Tweet Sentiment & Stance Benchmark
 
+**Current operations addendum — 5 November 2026:** The latest [full-corpus Actions run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067) verified **45 of 64 sentiment shards (00–44)**, with **sentiment shard 45 submitted but not yet validated complete**; **0 of 64 exploratory stance shards** were verified by that controller checkpoint. The original index contains **2,285,081 source rows** and **1,944,361 distinct exact texts**. Full-corpus aggregation and a scientifically validated vaccine-stance prevalence estimate **are not complete**. The 3 November diagnostics found private-output API rate limiting and missing-accessible-summary failures in legacy Qwen/v2/v3 controllers; those retrieval failures do not by themselves erase earlier completed experiments. A green GitHub Action is not equivalent to a complete Kaggle model output.
+
+**Maintained public documentation:** [README](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/README.md), [dated project history](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/docs/PROJECT_HISTORY.md), [research methods](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/docs/RESEARCH_METHODS.md), [operations and recovery](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/docs/PIPELINE_OPERATIONS.md), [references](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/master/docs/REFERENCES.md), and [blog-ready progress articles](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/master/progress-articles). The material below retains the original stage-specific details and historical checkpoint language. Treat earlier statements of what was 'latest', 'pending', or 'not yet authorized' as dated research records.
+
+
 Reproducible research pipeline for model-assisted analysis of historical vaccination-related tweets (2006–2019). The pipeline separates **sentiment polarity** (positive, neutral, negative) from **the author's stance toward vaccination** (support, oppose, uncertain, mixed, no expressed stance, insufficient context).
 
 **Active development:** [feature/kaggle-model-benchmark-v1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1) ([pull request #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1)). The default branch, master, has not yet received this implementation.
 
-## Latest execution checkpoint — 27 October 2026
+## Historical execution checkpoint — 27 October 2026
 
 The private corpus index and GPU capacity probe are complete: **2,285,081 original rows**, **1,944,361 unique exact texts**, **340,720 duplicate occurrences**, and **64 fixed partitions**. The original-event-weight backfill is also confirmed COMPLETE, with its private report available.
 
