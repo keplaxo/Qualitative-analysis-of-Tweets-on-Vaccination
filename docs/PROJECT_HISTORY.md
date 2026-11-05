@@ -1,0 +1,54 @@
+# Project history: the vaccination tweet research, in sequence
+
+**Author:** Dr William Kane Olwit  
+**Evidence review:** 5 November 2026
+
+This is my dated account of the research decisions, implementation stages, unsuccessful attempts and verified findings. Historical checkpoints remain historical; they should not be confused with the current state of private Kaggle notebooks.
+
+## 6–16 October: beginning with the research question
+
+I revisited an archived vaccination tweet dataset because polarity-only sentiment did not answer my real question. A tweet could be negative about an outbreak, neutral about a vaccine trial, or critical of compulsory vaccination without opposing vaccines themselves. The project moved away from the original VADER-style approach toward task-specific social-media transformers and a separate semantic investigation of author vaccination stance. I also decided against creating or manually approving a new label set. Any validity claims would need suitable independently published references, not an LLM's confidence in itself.
+
+The source archive predates this October research restart. The present GitHub implementation began on **17 October 2026**, not at the creation of the original tweet corpus. The observed source years span **2006–2019**. Early shorthand of pro/anti/neutral/unresolved evolved into distinct sentiment, vaccine stance and intention ontologies.
+
+## 17 October: data, reproducibility and the first failed run
+
+I initialized the public repository with a strict data policy: the code and safe research documentation could be public, while tweet texts, source IDs, credentials, model weights and individual predictions would stay in controlled storage ([initial commit](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/commit/1bddd9be504e4c5e7957771a6b844ebb44178cc4)). Development proceeded on the [feature branch](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/tree/feature/kaggle-model-benchmark-v1), now covered by [draft PR #1](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/pull/1).
+
+The [approved Kaggle dataset](https://www.kaggle.com/datasets/keplaxo/twitter-vaccination-dataset) exposed two readable CSVs, master.csv and vaccination2.csv. The initial schema investigation identified tweet text, date and an ID field in the master file, but no language field, so language screening became an explicit pipeline stage.
+
+The first smoke run failed on something less interesting than a transformer: tweet IDs represented in scientific notation could collide. The correction was to derive canonical inference IDs from SHA-256 of **exact text**, rather than a numerically read source ID. The corrected 100-record pilot then returned 100 multilingual sentiment, 85 English sentiment and 85 exploratory stance predictions. The two sentiment models agreed on 56/85 English overlap records, **65.9% agreement, not accuracy** ([completed smoke run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39046209397)). The first 2,000-record full benchmark was subsequently canceled ([cancellation evidence](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39046808459)). Submission, cancellation and successful inference became explicitly different statuses.
+
+## 18 October: the benchmark worked, but the concepts did not yet align
+
+The retried 2,000-record development benchmark eventually completed. All 2,000 selected tweets received multilingual sentiment; 1,666 English-screened records received English sentiment and DeBERTa zero-shot stance. Paired sentiment agreement on the 1,666 English records was 1,340/1,666 (80.4%). The Qwen3 20-record pilot and deliberately selected 300-record review also finished; 290 of the 300 outputs passed structural parsing.
+
+The substantive surprise was **31/290 (10.7%)** exact DeBERTa–Qwen stance agreement. An additional private CPU audit verified all 300 text hashes and paired joins, reducing the plausibility of an ID mismatch. Of the 259 discordances, **130** matched a DeBERTa insufficient-context output with a Qwen uncertain output. In the 176-valid-case deliberately enriched low-margin/abstention subset, agreement was 0/176; in 114 comparison cases, it was 31/114 (27.2%). Those are descriptions of two models and a selected sample, not model accuracy ([audit protocol and results](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/feature/kaggle-model-benchmark-v1/docs/STANCE_DISAGREEMENT_AUDIT.md); [safe audit run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/39109108830)).
+
+I responded by clarifying the categories instead of forcing a convenient label crosswalk. Ontology v2 separated the author's **expressed hesitation**, a readable tweet expressing **no author stance**, and a tweet with **insufficient attribution or context**. A 60-case controlled experiment produced 57 structurally valid results; 27 original Qwen uncertain cases became no-expressed-stance. This assessed consistency under revised rules, not whether v2 became scientifically accurate ([v2 experiment](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/feature/kaggle-model-benchmark-v1/docs/ONTOLOGY_V2_EXPERIMENT.md)).
+
+An independent, text-bearing public resource, [VACMA-PUBLIC](https://github.com/peregilk/VACMA-PUBLIC), was then used for a **different target**: personal vaccination intention. Of 200 public cases, 43 had an acceptance-intention label and 18 had a rejection-intention label. The strict Qwen v2 proxy crosswalk matched **12/61 (19.7%)**, with macro-F1 0.337 and binary model coverage 18/61 (29.5%). It would be incorrect to present those as six-class stance accuracy. The distinction motivated v3, which asks separately about **the author's general vaccine stance** and **their personal vaccination intention**. Because the 61 reference cases had already influenced development, any subsequent v3 evaluation on them is **post-hoc development**, never untouched validation ([v3 protocol](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/feature/kaggle-model-benchmark-v1/docs/STANCE_INTENTION_V3_DEVELOPMENT.md)).
+
+The independently annotated [VaxxHesitancy V2 reference](https://zenodo.org/records/7601328) was also examined. The accessible files contained tweet IDs and annotation fields but not the tweet texts needed for direct inference; lawful authorized rehydration would be required. Its COVID-era stance definitions also differ from the intended historical author-stance task.
+
+## 19 October: scaling to the original corpus
+
+The private CPU index completed both sources with **2,285,081 original rows**, **1,944,361 unique exact texts** and **340,720 repeated occurrences**. Texts were deterministically assigned to **64 SHA-256 shards**. Unique-text inference saves compute; a distinct private event-join stage reconstructs the original source occurrence weights needed for year/source denominators.
+
+A 1,000-record GPU capacity probe completed, followed by a first sentiment shard of 30,365 unique records. The first shard yielded 30,365 multilingual and 25,380 English-screened sentiment predictions. The design deliberately separates **64 sentiment jobs** from **64 exploratory DeBERTa stance jobs**, followed by **16 CPU aggregation waves** and a final report. Qwen is not being applied to millions of tweets ([index commit](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/commit/1f112fecc02238332c29814cfd8f85e22e88a4a3); [shard scheduling commit](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/commit/cb227e7bc42c644997ec40416b9a2368a66c405b); [full corpus runbook](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/feature/kaggle-model-benchmark-v1/docs/FULL_CORPUS_PIPELINE.md)).
+
+## 25–27 October: the output existed, but the controller could not retrieve it
+
+The full-corpus controller stalled when private Kaggle report retrieval intermittently failed. An independent read-only check showed that sentiment shards 13 and 14 were complete and their reports retrievable. The original-event-weight backfill was also **COMPLETE**. The controller was revised to recognize the API's regex pattern behavior for nested paths, retry report reads within limits, and never rerun a completed model merely because metadata retrieval had failed. The [27 October recovery run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/40475556667) revalidated sentiment **00–14** and **submitted** shard 15 ([read-only diagnostic](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/40474727433)). Submission is not completion.
+
+## 1–5 November: dependency repair, rate limits and the real checkpoint
+
+Early November brought a Kaggle CLI startup problem, repaired with an explicit six dependency ([repair commit](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/commit/ddf2c0416bff0cd20b8d1542faaf8a07cd2279a1)). A sanitized diagnostic detected intermittent **HTTP 429** private-output rate limiting ([diagnostic](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41641762607)). Some Qwen/v2/v3 legacy controllers remained blocked by missing accessible summaries, rather than evidence of missing inference. Unnecessary repeat polling was curtailed ([change](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/commit/f5e97ca79f73bd4c442ddb0d57f5d2382a241dba)).
+
+Meanwhile, the full-corpus sentiment workflow continued to progress. On [4 November](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41922232916) it verified 44 completed sentiment shards and submitted shard 44. On **5 November, 02:43 UTC**, it had validated **45 shards (00–44)**, with **zero** validated stance shards, and **submitted shard 45** ([latest run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067)). This is the precise status I can document, not a declaration of completed corpus analysis.
+
+## Next decision
+
+Confirm shard 45's private report and exact-hash coverage before moving further. Complete and verify the remaining sentiment jobs, then the independently gated exploratory stance jobs and the 16 aggregate waves. Retain both exact-text and original-event-weighted denominators. Most importantly, secure an untouched, text-accessible, task-matched reference before presenting model-predicted vaccine stance as a validated measure of public attitudes. The technical program is progressing; the scientific validation question remains open.
+
+See [methods](RESEARCH_METHODS.md), [operations](PIPELINE_OPERATIONS.md) and [references](REFERENCES.md).
