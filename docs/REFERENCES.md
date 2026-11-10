@@ -26,4 +26,7 @@
 17. [4 Nov full-corpus controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41922232916): 44 sentiment shards validated; shard 44 submitted.
 18. [5 Nov full-corpus controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067): **45 sentiment shards validated; shard 45 submitted; zero verified stance shards**.
 
+19. [10 Nov full sentiment completion](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42745672807): **64 verified sentiment shards**; stance 00 submitted.
+20. [10 Nov accelerated run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209): **stance 00 verified, stance 01 submitted**; [concurrency tests](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771358795); [bounded lookahead controller code](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/blob/feature/kaggle-model-benchmark-v1/scripts/advance_full_corpus.py).
+
 These references document choices and execution, not a verified population-level vaccine-hesitancy estimate. Use each citation for the exact claim it supports. Do not publish underlying private tweet IDs, source content, record hashes or individual model responses.
