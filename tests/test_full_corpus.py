@@ -141,3 +141,59 @@ def test_private_registry_pagination_prevents_duplicate_kernel(monkeypatch):
     monkeypatch.setattr(controller,"command",fake_command)
     assert controller.private_kernel_registered(ref) is True
     assert queried==[1,2]
+
+def test_bounded_gpu_lookahead_submits_second_shard_once(monkeypatch):
+    controller=load("scripts/advance_full_corpus.py","corpus_inflight")
+    assert controller.MAX_ACTIVE_GPU==2
+    active={"sentiment":64,"stance":0}
+    seen=[]
+    def status(ref):
+        if ref==controller.make_ref("stance",0):return "RUNNING"
+        if ref==controller.make_ref("stance",1):return "NOT_AVAILABLE"
+        raise AssertionError("Lookahead exceeded first new submission")
+    monkeypatch.setattr(controller,"state",status)
+    monkeypatch.setattr(controller,"submit",lambda stage,i:seen.append((stage,i)))
+    assert controller.advance_inference({}, {}, active) is False
+    assert seen==[("stance",1)]
+    assert active=={"sentiment":64,"stance":0}
+
+def test_gpu_cap_does_not_submit_third_active_shard(monkeypatch):
+    controller=load("scripts/advance_full_corpus.py","corpus_inflight_cap")
+    complete={"sentiment":64,"stance":0}
+    seen=[]
+    def status(ref):
+        i=int(ref.split("-")[-2])
+        assert i in (0,1), "Must not poll third shard at GPU cap"
+        return "RUNNING"
+    monkeypatch.setattr(controller,"state",status)
+    monkeypatch.setattr(controller,"submit",lambda stage,i:seen.append(i))
+    assert controller.advance_inference({}, {}, complete) is False
+    assert seen==[]
+
+def test_out_of_order_completed_shard_not_counted_as_prefix(monkeypatch):
+    controller=load("scripts/advance_full_corpus.py","corpus_outoforder")
+    complete={"sentiment":64,"stance":0}
+    called=[]
+    def status(ref):
+        i=int(ref.split("-")[-2])
+        return {0:"RUNNING",1:"COMPLETE",2:"NOT_AVAILABLE"}[i]
+    monkeypatch.setattr(controller,"state",status)
+    monkeypatch.setattr(controller,"validate_stage",lambda stage,i,n:called.append(("validated",i)))
+    monkeypatch.setattr(controller,"persist_verified_prefix",lambda m,c:called.append(("prefix",c["stance"])))
+    monkeypatch.setattr(controller,"submit",lambda stage,i:called.append(("submitted",i)))
+    assert controller.advance_inference({}, {"01":30000}, complete) is False
+    assert complete["stance"]==0
+    assert called==[("validated",1),("submitted",2)]
+
+def test_early_aggregation_only_for_complete_validated_wave(monkeypatch):
+    controller=load("scripts/advance_full_corpus.py","corpus_early_wave")
+    seen=[]
+    monkeypatch.setattr(controller,"state",lambda ref:
+        "COMPLETE" if ref==controller.EVENTS else "NOT_AVAILABLE")
+    monkeypatch.setattr(controller,"event_weights_ok",lambda m:seen.append("verified_events"))
+    monkeypatch.setattr(controller,"submit_aggregation",lambda stage,i:
+                        seen.append((stage,i)))
+    controller.advance_ready_waves({},{"stance":3})
+    assert seen==[]
+    controller.advance_ready_waves({},{"stance":4})
+    assert seen==["verified_events",("wave",0)]
