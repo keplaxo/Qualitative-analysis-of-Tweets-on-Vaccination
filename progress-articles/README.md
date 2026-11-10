@@ -9,7 +9,8 @@ The article dates refer to **when the episode took place**, not a claim that the
 3. [When two models could barely agree](2026-10-18-when-models-disagree.md) — the 31/290 result, sampling bias and uncertainty categories.
 4. [Vaccine stance is not vaccination intention](2026-10-18-stance-is-not-intention.md) — ontology v2/v3, public reference data and honest validation.
 5. [Two million records, without pretending to have infinite compute](2026-10-19-scaling-the-corpus.md) — deduplication, sharding, GPU constraints and original-event denominators.
-6. [A green check is not the finish line](2026-11-05-a-green-check-is-not-finished.md) — late-October recovery and early-November throttling at that date.\n7. [The sentiment run is done. The bottleneck isn't.](2026-11-10-the-sentiment-run-is-done.md) — completion of all sentiment shards, the first stance run, and a conservative throughput redesign.
+6. [A green check is not the finish line](2026-11-05-a-green-check-is-not-finished.md) — late-October recovery and early-November throttling at that date.
+7. [The sentiment run is done. The bottleneck isn't.](2026-11-10-the-sentiment-run-is-done.md) — completion of all sentiment shards, the first stance run, and a conservative throughput redesign.
 
 ## Publishing notes
 
