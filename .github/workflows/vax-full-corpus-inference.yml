@@ -6,7 +6,7 @@ on:
     paths: [".github/workflows/vax-full-corpus-inference.yml"]
   workflow_dispatch:
   schedule:
-    - cron: "37 * * * *"
+    # Three short checks per hour; the controller enforces one new GPU submission\n    # per pass and a two-active-GPU ceiling. GitHub schedule is best effort.\n    - cron: "7,27,47 * * * *"
 
 permissions:
   contents: read
