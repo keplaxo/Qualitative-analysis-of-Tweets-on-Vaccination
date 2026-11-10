@@ -31,7 +31,9 @@ The controller saves only verified contiguous shard counts and a source manifest
 | 3 November | [v2 controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41642073524) | Blocked by inaccessible summary.json |
 | 3 November | [v3 controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41642080886) | Blocked by inaccessible VACMA private report |
 | 4 November | [Full-corpus controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41922232916) | 44 validated sentiment shards, 0 stance; 44 submitted |
-| 5 November | [Controller checkpoint](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067) | 45 validated sentiment shards, 0 stance; shard 45 submitted |\n| 10 November | [Original controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42745672807) | **64/64 sentiment shards verified; stance 00 submitted** |\n| 10 November | [Accelerated controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) | **64/64 sentiment and 1/64 stance verified; stance 01 submitted** |
+| 5 November | [Controller checkpoint](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067) | 45 validated sentiment shards, 0 stance; shard 45 submitted |
+| 10 November | [Original controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42745672807) | **64/64 sentiment shards verified; stance 00 submitted** |
+| 10 November | [Accelerated controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) | **64/64 sentiment and 1/64 stance verified; stance 01 submitted** |
 
 ## Failure analysis and repairs
 
