@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # Run the tested feature-branch controller; master stores the scheduler.
       - uses: actions/checkout@v4
         with:
           ref: feature/kaggle-model-benchmark-v1
