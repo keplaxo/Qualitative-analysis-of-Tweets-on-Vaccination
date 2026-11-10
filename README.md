@@ -1,13 +1,13 @@
 # Vaccination Tweet Sentiment & Stance Research
 
 **Research author:** Dr William Kane Olwit  
-**Documentation checkpoint:** 5 November 2026
+**Documentation checkpoint:** 10 November 2026
 
 I returned to an archived collection of vaccination-related tweets to investigate something that a simple positive/negative sentiment score could not capture: what, if anything, did the author actually say about vaccination? Negative language about an infection, opposition to a vaccine mandate, and an expressed decision not to be vaccinated are different things. This project develops a reproducible model-assisted pipeline that treats those distinctions seriously.
 
 This public repository documents the research questions, data processing, model comparisons, failed attempts, workflow repairs and current full-corpus analysis. It does **not** publish source tweets, identifiers or individual predictions, and it does **not** claim independent accuracy for vaccination stance.
 
-## Verified status as of 5 November 2026
+## Verified status as of 10 November 2026
 
 | Component | Evidence-based status |
 | --- | --- |
@@ -18,11 +18,11 @@ This public repository documents the research questions, data processing, model 
 | Qwen vs DeBERTa stance agreement | 31/290 (10.7%) valid paired predictions, **not accuracy** |
 | Qwen v2 controlled experiment | 57/60 structurally valid outputs |
 | Published VACMA intention-proxy comparison | 12/61 (19.7%) strict alignment, macro-F1 0.337; **not six-class stance accuracy** |
-| Full-corpus sentiment | **45/64 shards validated (indices 00–44)**; shard 45 **submitted**, not verified complete |
-| Exploratory full-corpus stance | **0/64 verified** at the latest controller checkpoint |
-| Final aggregation and full report | Not verified complete |
+| Full-corpus sentiment | **64/64 shards validated (indices 00–63)** |
+| Exploratory full-corpus stance | **1/64 validated**; stance shard 01 submitted, not yet verified complete |
+| Full aggregation and final report | 0/16 aggregation waves verified; final report pending |
 
-The latest [GitHub Actions evidence (5 November)](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067) reported a validated sentiment prefix of 45, zero validated stance shards and submission of sentiment shard 45. A green GitHub workflow run can mean successful control and submission, **not completed Kaggle inference**. This table is a dated checkpoint, not a live counter.
+The [10 November accelerated controller run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) confirmed all 64 sentiment shards and the first stance shard, then submitted stance shard 01. The controller now checks three times an hour, permits up to two outstanding GPU shards (subject to Kaggle quota), and can start eligible four-shard CPU aggregation waves before the last stance shard finishes. A green GitHub workflow means that orchestration worked, **not necessarily that a submitted Kaggle kernel completed**. This is a dated checkpoint, not a live counter.
 
 ## Objectives and analytical design
 
@@ -51,4 +51,4 @@ The default [master branch](https://github.com/keplaxo/Qualitative-analysis-of-T
 
 The feature branch uses Python 3.11, synthetic unit tests and private Kaggle notebooks for actual inference. Passing code tests establishes implementation behavior, not scientific validity. Do not copy private tweet text, tweet IDs, dataset row hashes, model weights, credentials, per-record predictions or licensed reference datasets into this public repository.
 
-**Next objective:** validate sentiment shard 45, finish the remaining sentiment shards, evaluate separately staged exploratory stance outputs, complete original-event-weighted aggregation, and resolve independent target-matched model validation before interpreting vaccine stance distributions.
+**Next objective:** verify the stance-01 output, continue the remaining 63 stance shards under the quota gates, overlap eligible CPU aggregation waves with later GPU inference, finish original-event-weighted synthesis, and resolve independent target-matched model validation before interpreting vaccine stance distributions.
