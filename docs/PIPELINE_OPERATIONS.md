@@ -34,6 +34,7 @@ The controller saves only verified contiguous shard counts and a source manifest
 | 5 November | [Controller checkpoint](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/41956954067) | 45 validated sentiment shards, 0 stance; shard 45 submitted |
 | 10 November | [Original controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42745672807) | **64/64 sentiment shards verified; stance 00 submitted** |
 | 10 November | [Accelerated controller](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) | **64/64 sentiment and 1/64 stance verified; stance 01 submitted** |
+| 10 November | [Bounded overlap check](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771840544) | Stance 01 was RUNNING when stance 02 was submitted; concurrent completed inference not yet measured |
 
 ## Failure analysis and repairs
 
@@ -53,7 +54,7 @@ The principal operational delay was a sequential, hourly scheduler rather than a
 
 Validated shard counts are persisted only as a **contiguous prefix**. An out-of-order completed kernel can be checked without prematurely increasing the verified count. The source manifest fingerprint, exact SHA-256 joins, expected counts, stage/partition identity and approved privacy flags retain their existing gates. No source tweet text or individual predictions are placed in the public checkpoint.
 
-The CPU reporting scheduler can now start a four-shard wave once its four stance shards are validated, even while later stance jobs run. This overlaps aggregation with inference but does not relax the final 16-wave integrity and original-event denominator checks. The first successful accelerated [GitHub run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) confirmed the first stance shard and submitted the next. **Actual throughput improvement, second-GPU concurrency and quota sustainability still require observation**. The [synthetic controller test run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771358795) passed.
+The CPU reporting scheduler can now start a four-shard wave once its four stance shards are validated, even while later stance jobs run. This overlaps aggregation with inference but does not relax the final 16-wave integrity and original-event denominator checks. The first successful accelerated [GitHub run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) confirmed the first stance shard; a [second run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771840544) observed stance 01 RUNNING and submitted stance 02 without reusing a completed kernel. **Actual throughput improvement, second-GPU concurrency and quota sustainability still require observation**. The [synthetic controller test run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771358795) passed.
 
 ## Safe recovery steps
 
