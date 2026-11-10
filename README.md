@@ -19,10 +19,10 @@ This public repository documents the research questions, data processing, model 
 | Qwen v2 controlled experiment | 57/60 structurally valid outputs |
 | Published VACMA intention-proxy comparison | 12/61 (19.7%) strict alignment, macro-F1 0.337; **not six-class stance accuracy** |
 | Full-corpus sentiment | **64/64 shards validated (indices 00–63)** |
-| Exploratory full-corpus stance | **1/64 validated**; stance shard 01 submitted, not yet verified complete |
+| Exploratory full-corpus stance | **1/64 validated**; stance 01 running and stance 02 submitted, neither yet verified complete |
 | Full aggregation and final report | 0/16 aggregation waves verified; final report pending |
 
-The [10 November accelerated controller run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) confirmed all 64 sentiment shards and the first stance shard, then submitted stance shard 01. The controller now checks three times an hour, permits up to two outstanding GPU shards (subject to Kaggle quota), and can start eligible four-shard CPU aggregation waves before the last stance shard finishes. A green GitHub workflow means that orchestration worked, **not necessarily that a submitted Kaggle kernel completed**. This is a dated checkpoint, not a live counter.
+The [first accelerated run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771438209) confirmed all 64 sentiment shards and the first stance shard, then submitted stance 01. A [follow-up live run](https://github.com/keplaxo/Qualitative-analysis-of-Tweets-on-Vaccination/actions/runs/42771840544) observed stance 01 RUNNING and submitted stance 02 under the bounded concurrency rule. The controller now checks three times an hour, permits up to two outstanding GPU shards (subject to Kaggle quota), and can start eligible four-shard CPU aggregation waves before the last stance shard finishes. A green GitHub workflow means that orchestration worked, **not necessarily that a submitted Kaggle kernel completed**. This is a dated checkpoint, not a live counter.
 
 ## Objectives and analytical design
 
