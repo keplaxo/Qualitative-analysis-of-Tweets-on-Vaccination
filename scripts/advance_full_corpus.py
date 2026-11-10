@@ -427,3 +427,9 @@ def main():
         "raw_event_prevalence_not_established":True
     }),flush=True)
     finish_aggregation(m)
+if __name__=="__main__":
+    try:main()
+    except Exception as exc:
+        print("FULL_CORPUS_CONTROLLER_BLOCKED",type(exc).__name__,str(exc),
+              file=sys.stderr)
+        sys.exit(1)
