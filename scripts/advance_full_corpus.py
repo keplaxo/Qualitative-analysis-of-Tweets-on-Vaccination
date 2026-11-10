@@ -6,13 +6,16 @@ Qwen vaccine stance or publish full-corpus stance prevalence as truth.
 
 A per-shard capacity estimate from the 1,000-record three-model pilot
 prevents submitting jobs that exceed a conservative Kaggle execution window.
-One new GPU job maximum per scheduler iteration; failure/cancellation stalls.
+At most two active GPU shards, with one new submission per controller pass;
+failure/cancellation stalls. Ready CPU aggregation waves may run alongside GPU.
 """
 import hashlib,json,math,os,pathlib,re,subprocess,sys,tempfile,time
 INDEX="keplaxo/vax-full-corpus-index-20261019"
 PILOT="keplaxo/vax-corpus-capacity-20261019"
 COUNT=64
 MAX_SECONDS=14500
+MAX_ACTIVE_GPU=2  # bounded; do not create more than one new GPU notebook per pass
+ACTIVE_STATES=frozenset(("QUEUED","RUNNING","STARTING","PENDING"))
 SLUG="20261019"
 CHECKPOINT=pathlib.Path(".vax_state/full_corpus_verified.json")
 def command(*args,timeout=110):
@@ -304,6 +307,76 @@ def persist_verified_prefix(m,verified):
     path.write_text(json.dumps(payload,sort_keys=True)+"\n",encoding="utf-8")
     os.replace(path,CHECKPOINT)
 
+def advance_inference(m,count,complete):
+    """Allow one new shard per pass, with at most two active GPUs.
+
+    A validated contiguous prefix is the only persisted progress. If a later
+    shard finishes first, it is checked again on subsequent passes; no gaps
+    are counted and no kernel is recreated on transient retrieval failures.
+    """
+    for stage in ("sentiment","stance"):
+        active=0
+        for i in range(complete[stage],COUNT):
+            ref=make_ref(stage,i)
+            s=state(ref)
+            if s=="COMPLETE":
+                validate_stage(stage,i,count["%02d"%i])
+                if i==complete[stage]:
+                    complete[stage]+=1
+                    persist_verified_prefix(m,complete)
+                continue
+            print("FULL_CORPUS_PROGRESS",json.dumps(complete),flush=True)
+            if s in ACTIVE_STATES:
+                active+=1
+                print("FULL_CORPUS_WAIT_SHARD",stage,i,s,flush=True)
+                if active>=MAX_ACTIVE_GPU:
+                    return False
+                continue
+            if s=="NOT_AVAILABLE":
+                if active>=MAX_ACTIVE_GPU:
+                    return False
+                try:
+                    submit(stage,i)
+                except RuntimeError as exc:
+                    if "rejected: quota" in str(exc):
+                        print("FULL_CORPUS_GPU_QUOTA_PAUSED",stage,i,
+                              "no inference retry or overwrite",flush=True)
+                        return False
+                    raise
+                return False  # only one new GPU submission per controller pass
+            print("FULL_CORPUS_BLOCKED_SHARD",stage,i,s,
+                  "no automatic retry",flush=True)
+            return False
+        if complete[stage]!=COUNT:
+            return False
+    return True
+
+def advance_ready_waves(m,complete):
+    """Overlap private CPU aggregation with later GPU stance inference.
+
+    Only complete contiguous groups of four *validated* stance shards are
+    eligible. Never trigger final synthesis here; finish_aggregation retains
+    its independent end-to-end integrity gates.
+    """
+    ready=complete["stance"]//4
+    if ready<=0:return
+    for i in range(ready):
+        s=state(wave_ref(i))
+        if s=="COMPLETE":
+            continue  # checked in finish_aggregation before final reporting
+        if s=="NOT_AVAILABLE":
+            event_status=state(EVENTS)
+            if event_status!="COMPLETE":
+                print("FULL_CORPUS_WAIT_EVENT_BACKFILL",event_status,flush=True)
+                return
+            event_weights_ok(m)
+            submit_aggregation("wave",i)
+        elif s in ACTIVE_STATES:
+            print("FULL_CORPUS_WAIT_AGGREGATE",i,s,flush=True)
+        else:
+            print("FULL_CORPUS_BLOCKED_AGGREGATE",i,s,flush=True)
+        return
+
 def main():
     if not (os.getenv("KAGGLE_API_TOKEN") or
             (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))):
@@ -343,25 +416,10 @@ def main():
             return
     complete=restore_verified_prefix(m)
     persist_verified_prefix(m,complete)
-    for stage in ("sentiment","stance"):
-        for i in range(COUNT):
-            if i < complete[stage]:
-                continue  # already validated and tied to this immutable index
-            ref=make_ref(stage,i)
-            s=state(ref)
-            if s=="COMPLETE":
-                validate_stage(stage,i,count["%02d"%i])
-                complete[stage]+=1
-                persist_verified_prefix(m,complete)
-                continue
-            print("FULL_CORPUS_PROGRESS",json.dumps(complete),flush=True)
-            if s=="NOT_AVAILABLE":submit(stage,i)
-            elif s in ("QUEUED","RUNNING","STARTING","PENDING"):
-                print("FULL_CORPUS_WAIT_SHARD",stage,i,s,flush=True)
-            else:
-                print("FULL_CORPUS_BLOCKED_SHARD",stage,i,s,
-                      "no automatic retry",flush=True)
-            return
+    inference_complete=advance_inference(m,count,complete)
+    if not inference_complete:
+        advance_ready_waves(m,complete)
+        return
     print("FULL_CORPUS_INFERENCE_COMPLETE",json.dumps({
         "unique_texts":m["unique_texts"],
         "sentiment_shards":64,"stance_shards":64,
@@ -369,9 +427,3 @@ def main():
         "raw_event_prevalence_not_established":True
     }),flush=True)
     finish_aggregation(m)
-if __name__=="__main__":
-    try:main()
-    except Exception as exc:
-        print("FULL_CORPUS_CONTROLLER_BLOCKED",type(exc).__name__,str(exc),
-              file=sys.stderr)
-        sys.exit(1)
